@@ -1,0 +1,14 @@
+{
+  "supported-targets": ["native"],
+  "is-main": true,
+  "link": {
+    "native": {
+      "cc": "clang",
+      "cc-link-flags": "-lsqlite3"
+    }
+  },
+  "native-stub": ["stub.c"],
+  "import": [
+    "moonbitlang/x/encoding"
+  ]
+}

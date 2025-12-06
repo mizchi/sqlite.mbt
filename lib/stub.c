@@ -1,0 +1,110 @@
+#include <sqlite3.h>
+#include <moonbit.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+// MoonBitのBytesからC文字列を取得するヘルパー
+// @encoding.encode_utf8()はUTF-8エンコーディングなので、そのままコピーしてNULL終端を追加
+static char* bytes_to_cstring(moonbit_bytes_t bytes) {
+    int32_t len = Moonbit_array_length(bytes);
+    char* str = (char*)malloc(len + 1);
+    memcpy(str, bytes, len);
+    str[len] = '\0';
+    return str;
+}
+
+// データベースを開く（成功時はdb, 失敗時はNULL）
+sqlite3* sqlite_open(moonbit_bytes_t filename) {
+    char* fname = bytes_to_cstring(filename);
+    sqlite3* db;
+    int rc = sqlite3_open(fname, &db);
+    free(fname);
+    if (rc != SQLITE_OK) {
+        sqlite3_close(db);
+        return NULL;
+    }
+    return db;
+}
+
+// ポインタがNULLかどうかをチェック
+int32_t sqlite_is_null(void* ptr) {
+    return ptr == NULL ? 1 : 0;
+}
+
+int32_t sqlite_stmt_is_null(sqlite3_stmt* ptr) {
+    return ptr == NULL ? 1 : 0;
+}
+
+// データベースを閉じる
+void sqlite_close(sqlite3* db) {
+    sqlite3_close(db);
+}
+
+// SQL実行（結果なし）。0=成功
+int32_t sqlite_exec(sqlite3* db, moonbit_bytes_t sql) {
+    char* sql_str = bytes_to_cstring(sql);
+    char* err_msg = NULL;
+    int rc = sqlite3_exec(db, sql_str, NULL, NULL, &err_msg);
+    free(sql_str);
+    if (err_msg) {
+        sqlite3_free(err_msg);
+    }
+    return rc;
+}
+
+// プリペアドステートメントを作成（失敗時はNULL）
+sqlite3_stmt* sqlite_prepare(sqlite3* db, moonbit_bytes_t sql) {
+    char* sql_str = bytes_to_cstring(sql);
+    sqlite3_stmt* stmt = NULL;
+    int rc = sqlite3_prepare_v2(db, sql_str, -1, &stmt, NULL);
+    free(sql_str);
+    if (rc != SQLITE_OK) {
+        return NULL;
+    }
+    return stmt;
+}
+
+// ステートメントを破棄
+void sqlite_finalize(sqlite3_stmt* stmt) {
+    sqlite3_finalize(stmt);
+}
+
+// パラメータをバインド（1-indexed）
+int32_t sqlite_bind_int(sqlite3_stmt* stmt, int32_t idx, int32_t value) {
+    return sqlite3_bind_int(stmt, idx, value);
+}
+
+int32_t sqlite_bind_double(sqlite3_stmt* stmt, int32_t idx, double value) {
+    return sqlite3_bind_double(stmt, idx, value);
+}
+
+int32_t sqlite_bind_text(sqlite3_stmt* stmt, int32_t idx, moonbit_bytes_t text) {
+    char* text_str = bytes_to_cstring(text);
+    int rc = sqlite3_bind_text(stmt, idx, text_str, -1, SQLITE_TRANSIENT);
+    free(text_str);
+    return rc;
+}
+
+// 次の行に進む。100=SQLITE_ROW(データあり), 101=SQLITE_DONE(終了)
+int32_t sqlite_step(sqlite3_stmt* stmt) {
+    return sqlite3_step(stmt);
+}
+
+// カラムの値を取得（0-indexed）
+int32_t sqlite_column_int(sqlite3_stmt* stmt, int32_t col) {
+    return sqlite3_column_int(stmt, col);
+}
+
+double sqlite_column_double(sqlite3_stmt* stmt, int32_t col) {
+    return sqlite3_column_double(stmt, col);
+}
+
+const char* sqlite_column_text(sqlite3_stmt* stmt, int32_t col) {
+    return (const char*)sqlite3_column_text(stmt, col);
+}
+
+// ステートメントをリセット（再利用可能に）
+void sqlite_reset(sqlite3_stmt* stmt) {
+    sqlite3_reset(stmt);
+}

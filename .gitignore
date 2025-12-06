@@ -1,0 +1,15 @@
+# MoonBit
+target/
+*.mbti
+.mooncakes/
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+
+# IDE
+.vscode/
+.idea/

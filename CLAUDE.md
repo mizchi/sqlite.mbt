@@ -81,3 +81,26 @@ moon test --target native    # Run tests
 - CLAUDE.md has some small tasks that are easy for AI to pick up, agent is
   welcome to finish the tasks and check the box when you are done
 
+
+## Known Issues
+
+### Priority 2 Features - Debugging Required
+
+以下の機能は実装済みだが、テストで問題が発生するため一時的に無効化：
+
+1. **`sqlite3_extended_errcode` + `sqlite3_errstr`**
+   - 問題: SIGBUS エラー
+   - 症状: 27個のテスト全て失敗
+   - 原因: 不明（文字列ポインタの扱いに問題がある可能性）
+
+2. **`sqlite3_bind_parameter_name` + `sqlite3_bind_parameter_index`**
+   - 問題: 無限ループまたはハング
+   - 症状: CPU 100%使用、テストがタイムアウト
+   - 原因: 不明（NULLポインタの扱い、またはBytes変換に問題がある可能性）
+
+### 今後の調査方針
+
+- MoonBit の Bytes 型と C の文字列ポインタの変換方法を確認
+- SQLite が返す文字列のライフタイム管理を確認  
+- NULL ポインタの適切な処理方法を確認
+

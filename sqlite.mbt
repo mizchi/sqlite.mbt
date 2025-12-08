@@ -411,6 +411,51 @@ pub fn Database::total_changes(self : Database) -> Int {
   sqlite_total_changes(self.handle)
 }
 
+// Transaction API
+
+///|
+pub fn Database::begin(self : Database) -> Bool {
+  sqlite_exec(self.handle, to_c_string("BEGIN")) == SQLITE_OK
+}
+
+///|
+pub fn Database::begin_immediate(self : Database) -> Bool {
+  sqlite_exec(self.handle, to_c_string("BEGIN IMMEDIATE")) == SQLITE_OK
+}
+
+///|
+pub fn Database::begin_exclusive(self : Database) -> Bool {
+  sqlite_exec(self.handle, to_c_string("BEGIN EXCLUSIVE")) == SQLITE_OK
+}
+
+///|
+pub fn Database::commit(self : Database) -> Bool {
+  sqlite_exec(self.handle, to_c_string("COMMIT")) == SQLITE_OK
+}
+
+///|
+pub fn Database::rollback(self : Database) -> Bool {
+  sqlite_exec(self.handle, to_c_string("ROLLBACK")) == SQLITE_OK
+}
+
+///|
+pub fn Database::savepoint(self : Database, name : String) -> Bool {
+  let sql = "SAVEPOINT " + name
+  sqlite_exec(self.handle, to_c_string(sql)) == SQLITE_OK
+}
+
+///|
+pub fn Database::release(self : Database, name : String) -> Bool {
+  let sql = "RELEASE " + name
+  sqlite_exec(self.handle, to_c_string(sql)) == SQLITE_OK
+}
+
+///|
+pub fn Database::rollback_to(self : Database, name : String) -> Bool {
+  let sql = "ROLLBACK TO " + name
+  sqlite_exec(self.handle, to_c_string(sql)) == SQLITE_OK
+}
+
 ///|
 test "sqlite_open_close" {
   let db = sqlite_open(to_c_string(":memory:"))
@@ -1008,4 +1053,136 @@ test "sqlite_limit" {
   assert_true(column_limit > 0)
 
   sqlite_close(db)
+}
+
+///|
+test "transaction_basic" {
+  let db = match Database::open(":memory:") {
+    Some(d) => d
+    None => abort("Failed to open database")
+  }
+
+  assert_true(db.exec("CREATE TABLE t (id INTEGER, value INTEGER)"))
+
+  // トランザクション開始
+  assert_true(db.begin())
+  assert_false(db.get_autocommit()) // トランザクション中
+
+  // データ挿入
+  assert_true(db.exec("INSERT INTO t VALUES (1, 100)"))
+  assert_true(db.exec("INSERT INTO t VALUES (2, 200)"))
+
+  // コミット
+  assert_true(db.commit())
+  assert_true(db.get_autocommit()) // オートコミットに戻る
+
+  // データが保存されていることを確認
+  match db.prepare("SELECT COUNT(*) FROM t") {
+    Some(stmt) => {
+      assert_eq(sqlite_step(stmt), SQLITE_ROW)
+      assert_eq(sqlite_column_int(stmt, 0), 2)
+      sqlite_finalize(stmt)
+    }
+    None => abort("Failed to prepare")
+  }
+
+  db.close()
+}
+
+///|
+test "transaction_rollback" {
+  let db = match Database::open(":memory:") {
+    Some(d) => d
+    None => abort("Failed to open database")
+  }
+
+  assert_true(db.exec("CREATE TABLE t (id INTEGER, value INTEGER)"))
+  assert_true(db.exec("INSERT INTO t VALUES (1, 100)"))
+
+  // トランザクション開始
+  assert_true(db.begin())
+
+  // データ挿入
+  assert_true(db.exec("INSERT INTO t VALUES (2, 200)"))
+
+  // ロールバック
+  assert_true(db.rollback())
+  assert_true(db.get_autocommit())
+
+  // データがロールバックされていることを確認（1件のみ）
+  match db.prepare("SELECT COUNT(*) FROM t") {
+    Some(stmt) => {
+      assert_eq(sqlite_step(stmt), SQLITE_ROW)
+      assert_eq(sqlite_column_int(stmt, 0), 1)
+      sqlite_finalize(stmt)
+    }
+    None => abort("Failed to prepare")
+  }
+
+  db.close()
+}
+
+///|
+test "transaction_savepoint" {
+  let db = match Database::open(":memory:") {
+    Some(d) => d
+    None => abort("Failed to open database")
+  }
+
+  assert_true(db.exec("CREATE TABLE t (id INTEGER, value INTEGER)"))
+
+  // トランザクション開始
+  assert_true(db.begin())
+
+  assert_true(db.exec("INSERT INTO t VALUES (1, 100)"))
+
+  // セーブポイント作成
+  assert_true(db.savepoint("sp1"))
+
+  assert_true(db.exec("INSERT INTO t VALUES (2, 200)"))
+
+  // セーブポイントにロールバック
+  assert_true(db.rollback_to("sp1"))
+
+  // セーブポイントをリリース
+  assert_true(db.release("sp1"))
+
+  // コミット
+  assert_true(db.commit())
+
+  // データを確認（sp1より前の1件のみ）
+  match db.prepare("SELECT COUNT(*) FROM t") {
+    Some(stmt) => {
+      assert_eq(sqlite_step(stmt), SQLITE_ROW)
+      assert_eq(sqlite_column_int(stmt, 0), 1)
+      sqlite_finalize(stmt)
+    }
+    None => abort("Failed to prepare")
+  }
+
+  db.close()
+}
+
+///|
+test "transaction_immediate_and_exclusive" {
+  let db = match Database::open(":memory:") {
+    Some(d) => d
+    None => abort("Failed to open database")
+  }
+
+  assert_true(db.exec("CREATE TABLE t (id INTEGER)"))
+
+  // IMMEDIATE トランザクション
+  assert_true(db.begin_immediate())
+  assert_false(db.get_autocommit())
+  assert_true(db.exec("INSERT INTO t VALUES (1)"))
+  assert_true(db.commit())
+
+  // EXCLUSIVE トランザクション
+  assert_true(db.begin_exclusive())
+  assert_false(db.get_autocommit())
+  assert_true(db.exec("INSERT INTO t VALUES (2)"))
+  assert_true(db.commit())
+
+  db.close()
 }

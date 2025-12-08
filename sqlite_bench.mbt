@@ -41,10 +41,10 @@ test "bench: Insert Single Row" (b : @bench.T) {
     let stmt = db
       .prepare("INSERT INTO users (name, age) VALUES (?, ?)")
       .unwrap()
-    sqlite_bind_text(stmt, 1, to_c_string("Alice")) |> ignore
-    sqlite_bind_int(stmt, 2, 30) |> ignore
-    sqlite_step(stmt) |> ignore
-    sqlite_finalize(stmt)
+    stmt.bind(1, Text(cstring("Alice"))) |> ignore
+    stmt.bind(2, Int(30)) |> ignore
+    stmt.execute() |> ignore
+    stmt.finalize()
     db.close()
   })
 }
@@ -58,12 +58,12 @@ test "bench: Insert 100 Rows" (b : @bench.T) {
       .prepare("INSERT INTO users (name, age) VALUES (?, ?)")
       .unwrap()
     for i = 0; i < 100; i = i + 1 {
-      sqlite_bind_text(stmt, 1, to_c_string("User\{i}")) |> ignore
-      sqlite_bind_int(stmt, 2, 20 + i % 50) |> ignore
-      sqlite_step(stmt) |> ignore
-      sqlite_reset(stmt)
+      stmt.bind(1, Text(cstring("User\{i}"))) |> ignore
+      stmt.bind(2, Int(20 + i % 50)) |> ignore
+      stmt.execute() |> ignore
+      stmt.reset()
     }
-    sqlite_finalize(stmt)
+    stmt.finalize()
     db.close()
   })
 }
@@ -78,12 +78,12 @@ test "bench: Insert with Transaction (100 rows)" (b : @bench.T) {
       .prepare("INSERT INTO users (name, age) VALUES (?, ?)")
       .unwrap()
     for i = 0; i < 100; i = i + 1 {
-      sqlite_bind_text(stmt, 1, to_c_string("User\{i}")) |> ignore
-      sqlite_bind_int(stmt, 2, 20 + i % 50) |> ignore
-      sqlite_step(stmt) |> ignore
-      sqlite_reset(stmt)
+      stmt.bind(1, Text(cstring("User\{i}"))) |> ignore
+      stmt.bind(2, Int(20 + i % 50)) |> ignore
+      stmt.execute() |> ignore
+      stmt.reset()
     }
-    sqlite_finalize(stmt)
+    stmt.finalize()
     db.commit() |> ignore
     db.close()
   })
@@ -99,20 +99,20 @@ test "bench: Select All Rows" (b : @bench.T) {
       .prepare("INSERT INTO users (name, age) VALUES (?, ?)")
       .unwrap()
     for i = 0; i < 100; i = i + 1 {
-      sqlite_bind_text(insert_stmt, 1, to_c_string("User\{i}")) |> ignore
-      sqlite_bind_int(insert_stmt, 2, 20 + i % 50) |> ignore
-      sqlite_step(insert_stmt) |> ignore
-      sqlite_reset(insert_stmt)
+      insert_stmt.bind(1, Text(cstring("User\{i}"))) |> ignore
+      insert_stmt.bind(2, Int(20 + i % 50)) |> ignore
+      insert_stmt.execute() |> ignore
+      insert_stmt.reset()
     }
-    sqlite_finalize(insert_stmt)
+    insert_stmt.finalize()
     // Select all
     let select_stmt = db.prepare("SELECT * FROM users").unwrap()
-    while sqlite_step(select_stmt) == SQLITE_ROW {
-      sqlite_column_int(select_stmt, 0) |> ignore
-      sqlite_column_text(select_stmt, 1) |> ignore
-      sqlite_column_int(select_stmt, 2) |> ignore
+    while select_stmt.step() {
+      select_stmt.column_int(0) |> ignore
+      select_stmt.column_text(1) |> ignore
+      select_stmt.column_int(2) |> ignore
     }
-    sqlite_finalize(select_stmt)
+    select_stmt.finalize()
     db.close()
   })
 }
@@ -127,21 +127,21 @@ test "bench: Select with WHERE clause" (b : @bench.T) {
       .prepare("INSERT INTO users (name, age) VALUES (?, ?)")
       .unwrap()
     for i = 0; i < 100; i = i + 1 {
-      sqlite_bind_text(insert_stmt, 1, to_c_string("User\{i}")) |> ignore
-      sqlite_bind_int(insert_stmt, 2, 20 + i % 50) |> ignore
-      sqlite_step(insert_stmt) |> ignore
-      sqlite_reset(insert_stmt)
+      insert_stmt.bind(1, Text(cstring("User\{i}"))) |> ignore
+      insert_stmt.bind(2, Int(20 + i % 50)) |> ignore
+      insert_stmt.execute() |> ignore
+      insert_stmt.reset()
     }
-    sqlite_finalize(insert_stmt)
+    insert_stmt.finalize()
     // Select with WHERE
     let select_stmt = db.prepare("SELECT * FROM users WHERE age > ?").unwrap()
-    sqlite_bind_int(select_stmt, 1, 30) |> ignore
-    while sqlite_step(select_stmt) == SQLITE_ROW {
-      sqlite_column_int(select_stmt, 0) |> ignore
-      sqlite_column_text(select_stmt, 1) |> ignore
-      sqlite_column_int(select_stmt, 2) |> ignore
+    select_stmt.bind(1, Int(30)) |> ignore
+    while select_stmt.step() {
+      select_stmt.column_int(0) |> ignore
+      select_stmt.column_text(1) |> ignore
+      select_stmt.column_int(2) |> ignore
     }
-    sqlite_finalize(select_stmt)
+    select_stmt.finalize()
     db.close()
   })
 }
@@ -156,20 +156,20 @@ test "bench: Update Rows" (b : @bench.T) {
       .prepare("INSERT INTO users (name, age) VALUES (?, ?)")
       .unwrap()
     for i = 0; i < 100; i = i + 1 {
-      sqlite_bind_text(insert_stmt, 1, to_c_string("User\{i}")) |> ignore
-      sqlite_bind_int(insert_stmt, 2, 20 + i % 50) |> ignore
-      sqlite_step(insert_stmt) |> ignore
-      sqlite_reset(insert_stmt)
+      insert_stmt.bind(1, Text(cstring("User\{i}"))) |> ignore
+      insert_stmt.bind(2, Int(20 + i % 50)) |> ignore
+      insert_stmt.execute() |> ignore
+      insert_stmt.reset()
     }
-    sqlite_finalize(insert_stmt)
+    insert_stmt.finalize()
     // Update
     let update_stmt = db
       .prepare("UPDATE users SET age = ? WHERE age > ?")
       .unwrap()
-    sqlite_bind_int(update_stmt, 1, 25) |> ignore
-    sqlite_bind_int(update_stmt, 2, 30) |> ignore
-    sqlite_step(update_stmt) |> ignore
-    sqlite_finalize(update_stmt)
+    update_stmt.bind(1, Int(25)) |> ignore
+    update_stmt.bind(2, Int(30)) |> ignore
+    update_stmt.execute() |> ignore
+    update_stmt.finalize()
     db.close()
   })
 }
@@ -184,17 +184,17 @@ test "bench: Delete Rows" (b : @bench.T) {
       .prepare("INSERT INTO users (name, age) VALUES (?, ?)")
       .unwrap()
     for i = 0; i < 100; i = i + 1 {
-      sqlite_bind_text(insert_stmt, 1, to_c_string("User\{i}")) |> ignore
-      sqlite_bind_int(insert_stmt, 2, 20 + i % 50) |> ignore
-      sqlite_step(insert_stmt) |> ignore
-      sqlite_reset(insert_stmt)
+      insert_stmt.bind(1, Text(cstring("User\{i}"))) |> ignore
+      insert_stmt.bind(2, Int(20 + i % 50)) |> ignore
+      insert_stmt.execute() |> ignore
+      insert_stmt.reset()
     }
-    sqlite_finalize(insert_stmt)
+    insert_stmt.finalize()
     // Delete
     let delete_stmt = db.prepare("DELETE FROM users WHERE age > ?").unwrap()
-    sqlite_bind_int(delete_stmt, 1, 40) |> ignore
-    sqlite_step(delete_stmt) |> ignore
-    sqlite_finalize(delete_stmt)
+    delete_stmt.bind(1, Int(40)) |> ignore
+    delete_stmt.execute() |> ignore
+    delete_stmt.finalize()
     db.close()
   })
 }
@@ -208,12 +208,12 @@ test "bench: Prepared Statement Reuse" (b : @bench.T) {
       .prepare("INSERT INTO users (name, age) VALUES (?, ?)")
       .unwrap()
     for i = 0; i < 50; i = i + 1 {
-      sqlite_bind_text(stmt, 1, to_c_string("User\{i}")) |> ignore
-      sqlite_bind_int(stmt, 2, 20 + i) |> ignore
-      sqlite_step(stmt) |> ignore
-      sqlite_reset(stmt)
+      stmt.bind(1, Text(cstring("User\{i}"))) |> ignore
+      stmt.bind(2, Int(20 + i)) |> ignore
+      stmt.execute() |> ignore
+      stmt.reset()
     }
-    sqlite_finalize(stmt)
+    stmt.finalize()
     db.close()
   })
 }

@@ -24,7 +24,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
-      
+      - name: Install Dependencies
+        run: sudo apt install -y libsqlite3-dev
       - name: Setup Moon
         uses: illusory0x0/setup-moonbit@v0.1.0
         with: 

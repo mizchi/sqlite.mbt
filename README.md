@@ -6,9 +6,10 @@ SQLite database bindings for MoonBit - C FFI wrapper for SQLite3.
 
 - Database management (open, close)
 - SQL execution
-- Prepared statements
-- Parameter binding (int, text)
-- Query results iteration
+- Type-safe prepared statements with `SqlValue` enum
+- Array-based parameter binding with `bind_all()`
+- Iterator-based query results with `iter()`
+- Transaction support (BEGIN, COMMIT, ROLLBACK, SAVEPOINT)
 - UTF-8 text encoding
 
 ## Usage
@@ -25,18 +26,25 @@ let db = match Database::open(":memory:") {
 // Create table
 db.exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)")
 
-// Insert data
-db.exec("INSERT INTO users (name, age) VALUES ('Alice', 30)")
-
-// Query with prepared statement
-match db.prepare("SELECT id, name, age FROM users") {
+// Insert data with bind_all()
+match db.prepare("INSERT INTO users (name, age) VALUES (?, ?)") {
   Some(stmt) => {
-    while sqlite_step(stmt) == SQLITE_ROW {
-      let id = sqlite_column_int(stmt, 0)
-      let age = sqlite_column_int(stmt, 2)
+    stmt.bind_all([Text(cstring("Alice")), Int(30)]) |> ignore
+    stmt.execute() |> ignore
+    stmt.finalize()
+  }
+  None => println("Failed to prepare statement")
+}
+
+// Query with iterator
+match db.query("SELECT id, name, age FROM users") {
+  Some(stmt) => {
+    for row in stmt.iter() {
+      let id = row.column_int(0)
+      let age = row.column_int(2)
       println("id=\{id}, age=\{age}")
     }
-    sqlite_finalize(stmt)
+    stmt.finalize()
   }
   None => println("Failed to prepare statement")
 }
@@ -53,24 +61,47 @@ db.close()
 
 ### High-level API
 
+**Database operations:**
 - `Database::open(path: String) -> Database?` - Open database
 - `Database::close(self)` - Close database
 - `Database::exec(self, sql: String) -> Bool` - Execute SQL
-- `Database::prepare(self, sql: String) -> Sqlite3Stmt?` - Prepare statement
+- `Database::prepare(self, sql: String) -> Statement?` - Prepare statement
+- `Database::query(self, sql: String) -> Statement?` - Prepare SELECT statement
+
+**Transaction API:**
+- `Database::begin(self) -> Bool` - Begin transaction
+- `Database::commit(self) -> Bool` - Commit transaction
+- `Database::rollback(self) -> Bool` - Rollback transaction
+- `Database::savepoint(self, name: String) -> Bool` - Create savepoint
+- `Database::release(self, name: String) -> Bool` - Release savepoint
+
+**Statement operations:**
+- `Statement::bind(idx: Int, value: SqlValue) -> Bool` - Bind single parameter
+- `Statement::bind_all(values: Array[SqlValue]) -> Bool` - Bind all parameters at once
+- `Statement::execute() -> Bool` - Execute INSERT/UPDATE/DELETE
+- `Statement::step() -> Bool` - Step to next row (for SELECT)
+- `Statement::column(col: Int) -> SqlValue` - Get column value as SqlValue
+- `Statement::column_int(col: Int) -> Int` - Get column as Int
+- `Statement::column_text(col: Int) -> Bytes` - Get column as Bytes
+- `Statement::iter() -> Iter[Statement]` - Create iterator for query results
+- `Statement::reset()` - Reset statement
+- `Statement::finalize()` - Finalize statement
+
+**SqlValue enum:**
+```moonbit
+pub enum SqlValue {
+  Null
+  Int(Int)
+  Int64(Int64)
+  Double(Double)
+  Text(Bytes)
+  Blob(Bytes)
+}
+```
 
 ### Low-level API
 
-- `sqlite_open(filename: Bytes) -> Sqlite3`
-- `sqlite_close(db: Sqlite3)`
-- `sqlite_exec(db: Sqlite3, sql: Bytes) -> Int`
-- `sqlite_prepare(db: Sqlite3, sql: Bytes) -> Sqlite3Stmt`
-- `sqlite_bind_int(stmt: Sqlite3Stmt, idx: Int, value: Int) -> Int`
-- `sqlite_bind_text(stmt: Sqlite3Stmt, idx: Int, text: Bytes) -> Int`
-- `sqlite_step(stmt: Sqlite3Stmt) -> Int`
-- `sqlite_column_int(stmt: Sqlite3Stmt, col: Int) -> Int`
-- `sqlite_column_text(stmt: Sqlite3Stmt, col: Int) -> Bytes`
-- `sqlite_reset(stmt: Sqlite3Stmt)`
-- `sqlite_finalize(stmt: Sqlite3Stmt)`
+Available for advanced usage. See source code for complete list.
 
 ## License
 

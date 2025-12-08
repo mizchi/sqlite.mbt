@@ -333,7 +333,7 @@ pub const SQLITE_LIMIT_TRIGGER_DEPTH : Int = 10
 // Using @encoding from moonbitlang/x/encoding
 
 ///|
-fn to_c_string(s : String) -> Bytes {
+fn cstring(s : String) -> Bytes {
   @encoding.encode(UTF8, s)
 }
 
@@ -346,7 +346,7 @@ pub struct Database {
 
 ///|
 pub fn Database::open(path : String) -> Database? {
-  let db = sqlite_open(to_c_string(path))
+  let db = sqlite_open(cstring(path))
   if sqlite_is_null(db) == 1 {
     None
   } else {
@@ -361,16 +361,16 @@ pub fn Database::close(self : Database) -> Unit {
 
 ///|
 pub fn Database::exec(self : Database, sql : String) -> Bool {
-  sqlite_exec(self.handle, to_c_string(sql)) == SQLITE_OK
+  sqlite_exec(self.handle, cstring(sql)) == SQLITE_OK
 }
 
 ///|
-pub fn Database::prepare(self : Database, sql : String) -> Sqlite3Stmt? {
-  let stmt = sqlite_prepare(self.handle, to_c_string(sql))
+pub fn Database::prepare(self : Database, sql : String) -> Statement? {
+  let stmt = sqlite_prepare(self.handle, cstring(sql))
   if sqlite_stmt_is_null(stmt) == 1 {
     None
   } else {
-    Some(stmt)
+    Some(Statement::new(stmt))
   }
 }
 
@@ -418,45 +418,170 @@ pub fn Database::total_changes(self : Database) -> Int {
 
 ///|
 pub fn Database::begin(self : Database) -> Bool {
-  sqlite_exec(self.handle, to_c_string("BEGIN")) == SQLITE_OK
+  sqlite_exec(self.handle, cstring("BEGIN")) == SQLITE_OK
 }
 
 ///|
 pub fn Database::begin_immediate(self : Database) -> Bool {
-  sqlite_exec(self.handle, to_c_string("BEGIN IMMEDIATE")) == SQLITE_OK
+  sqlite_exec(self.handle, cstring("BEGIN IMMEDIATE")) == SQLITE_OK
 }
 
 ///|
 pub fn Database::begin_exclusive(self : Database) -> Bool {
-  sqlite_exec(self.handle, to_c_string("BEGIN EXCLUSIVE")) == SQLITE_OK
+  sqlite_exec(self.handle, cstring("BEGIN EXCLUSIVE")) == SQLITE_OK
 }
 
 ///|
 pub fn Database::commit(self : Database) -> Bool {
-  sqlite_exec(self.handle, to_c_string("COMMIT")) == SQLITE_OK
+  sqlite_exec(self.handle, cstring("COMMIT")) == SQLITE_OK
 }
 
 ///|
 pub fn Database::rollback(self : Database) -> Bool {
-  sqlite_exec(self.handle, to_c_string("ROLLBACK")) == SQLITE_OK
+  sqlite_exec(self.handle, cstring("ROLLBACK")) == SQLITE_OK
 }
 
 ///|
 pub fn Database::savepoint(self : Database, name : String) -> Bool {
   let sql = "SAVEPOINT " + name
-  sqlite_exec(self.handle, to_c_string(sql)) == SQLITE_OK
+  sqlite_exec(self.handle, cstring(sql)) == SQLITE_OK
 }
 
 ///|
 pub fn Database::release(self : Database, name : String) -> Bool {
   let sql = "RELEASE " + name
-  sqlite_exec(self.handle, to_c_string(sql)) == SQLITE_OK
+  sqlite_exec(self.handle, cstring(sql)) == SQLITE_OK
 }
 
 ///|
 pub fn Database::rollback_to(self : Database, name : String) -> Bool {
   let sql = "ROLLBACK TO " + name
-  sqlite_exec(self.handle, to_c_string(sql)) == SQLITE_OK
+  sqlite_exec(self.handle, cstring(sql)) == SQLITE_OK
+}
+
+// SqlValue enum for type-safe bind and column operations
+
+///|
+pub enum SqlValue {
+  Null
+  Int(Int)
+  Int64(Int64)
+  Double(Double)
+  Text(Bytes)
+  Blob(Bytes)
+}
+
+// Statement Iterator API
+
+///|
+pub struct Statement {
+  priv stmt : Sqlite3Stmt
+  priv mut done : Bool
+}
+
+///|
+pub fn Statement::new(stmt : Sqlite3Stmt) -> Statement {
+  { stmt, done: false }
+}
+
+///|
+pub fn Statement::step(self : Statement) -> Bool {
+  if self.done {
+    return false
+  }
+  let result = sqlite_step(self.stmt)
+  if result == SQLITE_ROW {
+    true
+  } else {
+    self.done = true
+    false
+  }
+}
+
+///|
+pub fn Statement::execute(self : Statement) -> Bool {
+  let result = sqlite_step(self.stmt)
+  result == SQLITE_DONE || result == SQLITE_ROW
+}
+
+///|
+pub fn Statement::column_int(self : Statement, col : Int) -> Int {
+  sqlite_column_int(self.stmt, col)
+}
+
+///|
+pub fn Statement::column_text(self : Statement, col : Int) -> Bytes {
+  sqlite_column_text(self.stmt, col)
+}
+
+///|
+pub fn Statement::column_count(self : Statement) -> Int {
+  sqlite_column_count(self.stmt)
+}
+
+///|
+pub fn Statement::bind(self : Statement, idx : Int, value : SqlValue) -> Bool {
+  let result = match value {
+    Null => sqlite_bind_null(self.stmt, idx)
+    Int(v) => sqlite_bind_int(self.stmt, idx, v)
+    Int64(v) => sqlite_bind_int64(self.stmt, idx, v)
+    Double(v) => sqlite_bind_double(self.stmt, idx, v)
+    Text(s) => sqlite_bind_text(self.stmt, idx, s)
+    Blob(b) => sqlite_bind_blob(self.stmt, idx, b)
+  }
+  result == SQLITE_OK
+}
+
+///|
+pub fn Statement::bind_all(self : Statement, values : Array[SqlValue]) -> Bool {
+  for i = 0; i < values.length(); i = i + 1 {
+    if not(self.bind(i + 1, values[i])) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+pub fn Statement::column(self : Statement, col : Int) -> SqlValue {
+  let col_type = sqlite_column_type(self.stmt, col)
+  match col_type {
+    SQLITE_NULL => Null
+    SQLITE_INTEGER => Int64(sqlite_column_int64(self.stmt, col))
+    SQLITE_FLOAT => Double(sqlite_column_double(self.stmt, col))
+    SQLITE_TEXT => Text(sqlite_column_text(self.stmt, col))
+    SQLITE_BLOB => Blob(sqlite_column_blob(self.stmt, col))
+    _ => Null
+  }
+}
+
+///|
+pub fn Statement::reset(self : Statement) -> Unit {
+  sqlite_reset(self.stmt)
+  self.done = false
+}
+
+///|
+pub fn Statement::finalize(self : Statement) -> Unit {
+  sqlite_finalize(self.stmt)
+}
+
+///|
+pub fn Statement::iter(self : Statement) -> Iter[Statement] {
+  Iter::new(fn(yield_) {
+    self.reset()
+    while self.step() {
+      if yield_(self) == IterEnd {
+        return IterEnd
+      }
+    }
+    IterContinue
+  })
+}
+
+///|
+pub fn Database::query(self : Database, sql : String) -> Statement? {
+  self.prepare(sql)
 }
 
 ///|

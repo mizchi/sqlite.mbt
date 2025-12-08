@@ -27,6 +27,27 @@ sqlite3* sqlite_open(moonbit_bytes_t filename) {
     return db;
 }
 
+// データベースを拡張オプションで開く
+sqlite3* sqlite_open_v2(moonbit_bytes_t filename, int32_t flags, moonbit_bytes_t vfs) {
+    char* fname = bytes_to_cstring(filename);
+    char* vfs_str = NULL;
+    if (Moonbit_array_length(vfs) > 0) {
+        vfs_str = bytes_to_cstring(vfs);
+    }
+
+    sqlite3* db;
+    int rc = sqlite3_open_v2(fname, &db, flags, vfs_str);
+
+    free(fname);
+    if (vfs_str) free(vfs_str);
+
+    if (rc != SQLITE_OK) {
+        sqlite3_close(db);
+        return NULL;
+    }
+    return db;
+}
+
 // ポインタがNULLかどうかをチェック
 int32_t sqlite_is_null(void* ptr) {
     return ptr == NULL ? 1 : 0;
@@ -273,4 +294,14 @@ const char* sqlite_expanded_sql(sqlite3_stmt* stmt) {
         return expanded_sql_buffer;
     }
     return "";
+}
+
+// 実行中のクエリを中断
+void sqlite_interrupt(sqlite3* db) {
+    sqlite3_interrupt(db);
+}
+
+// リソース制限の設定/取得
+int32_t sqlite_limit(sqlite3* db, int32_t id, int32_t newVal) {
+    return sqlite3_limit(db, id, newVal);
 }

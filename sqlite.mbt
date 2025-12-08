@@ -16,6 +16,14 @@ type Sqlite3Stmt
 extern "C" fn sqlite_open(filename : Bytes) -> Sqlite3 = "sqlite_open"
 
 ///|
+#borrow(filename, vfs)
+pub extern "C" fn sqlite_open_v2(
+  filename : Bytes,
+  flags : Int,
+  vfs : Bytes,
+) -> Sqlite3 = "sqlite_open_v2"
+
+///|
 #borrow(ptr)
 extern "C" fn sqlite_is_null(ptr : Sqlite3) -> Int = "sqlite_is_null"
 
@@ -226,6 +234,18 @@ pub extern "C" fn sqlite_db_readonly(db : Sqlite3, dbname : Bytes) -> Int = "sql
 #borrow(stmt)
 pub extern "C" fn sqlite_expanded_sql(stmt : Sqlite3Stmt) -> Bytes = "sqlite_expanded_sql"
 
+// クエリ制御
+
+///|
+#borrow(db)
+pub extern "C" fn sqlite_interrupt(db : Sqlite3) -> Unit = "sqlite_interrupt"
+
+// リソース制限
+
+///|
+#borrow(db)
+pub extern "C" fn sqlite_limit(db : Sqlite3, id : Int, newVal : Int) -> Int = "sqlite_limit"
+
 // 定数
 
 ///|
@@ -252,6 +272,59 @@ pub const SQLITE_BLOB : Int = 4
 
 ///|
 pub const SQLITE_NULL : Int = 5
+
+// sqlite3_open_v2 フラグ
+///|
+pub const SQLITE_OPEN_READONLY : Int = 0x00000001
+
+///|
+pub const SQLITE_OPEN_READWRITE : Int = 0x00000002
+
+///|
+pub const SQLITE_OPEN_CREATE : Int = 0x00000004
+
+///|
+pub const SQLITE_OPEN_MEMORY : Int = 0x00000080
+
+///|
+pub const SQLITE_OPEN_NOMUTEX : Int = 0x00008000
+
+///|
+pub const SQLITE_OPEN_FULLMUTEX : Int = 0x00010000
+
+// sqlite3_limit ID定数
+///|
+pub const SQLITE_LIMIT_LENGTH : Int = 0
+
+///|
+pub const SQLITE_LIMIT_SQL_LENGTH : Int = 1
+
+///|
+pub const SQLITE_LIMIT_COLUMN : Int = 2
+
+///|
+pub const SQLITE_LIMIT_EXPR_DEPTH : Int = 3
+
+///|
+pub const SQLITE_LIMIT_COMPOUND_SELECT : Int = 4
+
+///|
+pub const SQLITE_LIMIT_VDBE_OP : Int = 5
+
+///|
+pub const SQLITE_LIMIT_FUNCTION_ARG : Int = 6
+
+///|
+pub const SQLITE_LIMIT_ATTACHED : Int = 7
+
+///|
+pub const SQLITE_LIMIT_LIKE_PATTERN_LENGTH : Int = 8
+
+///|
+pub const SQLITE_LIMIT_VARIABLE_NUMBER : Int = 9
+
+///|
+pub const SQLITE_LIMIT_TRIGGER_DEPTH : Int = 10
 
 // String -> Bytes 変換ヘルパー（UTF-8エンコーディング）
 // Using @encoding from moonbitlang/x/encoding
@@ -899,5 +972,40 @@ test "sqlite_expanded_sql" {
   let _ = sqlite_expanded_sql(stmt)
 
   sqlite_finalize(stmt)
+  sqlite_close(db)
+}
+
+///|
+test "sqlite_open_v2" {
+  // 読み書き可能でデータベースを開く
+  let db = sqlite_open_v2(
+    to_c_string(":memory:"),
+    SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_MEMORY,
+    to_c_string(""),
+  )
+  assert_false(sqlite_is_null(db) == 1)
+
+  // テーブル作成
+  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER)"))
+
+  sqlite_close(db)
+}
+
+///|
+test "sqlite_limit" {
+  let db = sqlite_open(to_c_string(":memory:"))
+
+  // 現在のLENGTH制限を取得（-1を渡すと現在値を返す）
+  let current_limit = sqlite_limit(db, SQLITE_LIMIT_LENGTH, -1)
+  assert_true(current_limit > 0)
+
+  // SQL_LENGTH制限を取得
+  let sql_limit = sqlite_limit(db, SQLITE_LIMIT_SQL_LENGTH, -1)
+  assert_true(sql_limit > 0)
+
+  // カラム数制限を取得
+  let column_limit = sqlite_limit(db, SQLITE_LIMIT_COLUMN, -1)
+  assert_true(column_limit > 0)
+
   sqlite_close(db)
 }

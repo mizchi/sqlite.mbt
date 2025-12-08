@@ -237,3 +237,40 @@ int32_t sqlite_bind_parameter_index(sqlite3_stmt* stmt, moonbit_bytes_t name) {
     free(name_str);
     return idx;
 }
+
+// データベースファイル名を取得（静的文字列をバッファにコピー）
+static char db_filename_buffer[512];
+
+const char* sqlite_db_filename(sqlite3* db, moonbit_bytes_t dbname) {
+    char* dbname_str = bytes_to_cstring(dbname);
+    const char* filename = sqlite3_db_filename(db, dbname_str);
+    free(dbname_str);
+
+    if (filename) {
+        strncpy(db_filename_buffer, filename, sizeof(db_filename_buffer) - 1);
+        db_filename_buffer[sizeof(db_filename_buffer) - 1] = '\0';
+        return db_filename_buffer;
+    }
+    return "";
+}
+
+int32_t sqlite_db_readonly(sqlite3* db, moonbit_bytes_t dbname) {
+    char* dbname_str = bytes_to_cstring(dbname);
+    int readonly = sqlite3_db_readonly(db, dbname_str);
+    free(dbname_str);
+    return readonly;
+}
+
+// 展開されたSQLを取得（動的に割り当てられた文字列）
+static char expanded_sql_buffer[1024];
+
+const char* sqlite_expanded_sql(sqlite3_stmt* stmt) {
+    char* sql = sqlite3_expanded_sql(stmt);
+    if (sql) {
+        strncpy(expanded_sql_buffer, sql, sizeof(expanded_sql_buffer) - 1);
+        expanded_sql_buffer[sizeof(expanded_sql_buffer) - 1] = '\0';
+        sqlite3_free(sql);  // 重要: 動的に割り当てられた文字列を解放
+        return expanded_sql_buffer;
+    }
+    return "";
+}

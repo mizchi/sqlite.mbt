@@ -210,6 +210,22 @@ pub extern "C" fn sqlite_bind_parameter_index(
   name : Bytes,
 ) -> Int = "sqlite_bind_parameter_index"
 
+// データベースメタデータ
+
+///|
+#borrow(db, dbname)
+pub extern "C" fn sqlite_db_filename(db : Sqlite3, dbname : Bytes) -> Bytes = "sqlite_db_filename"
+
+///|
+#borrow(db, dbname)
+pub extern "C" fn sqlite_db_readonly(db : Sqlite3, dbname : Bytes) -> Int = "sqlite_db_readonly"
+
+// SQL展開
+
+///|
+#borrow(stmt)
+pub extern "C" fn sqlite_expanded_sql(stmt : Sqlite3Stmt) -> Bytes = "sqlite_expanded_sql"
+
 // 定数
 
 ///|
@@ -845,6 +861,42 @@ test "sqlite_bind_parameter_name_and_index" {
   let _ = sqlite_bind_int(stmt, id_idx, 100)
   let _ = sqlite_bind_text(stmt, value_idx, to_c_string("test"))
   let _ = sqlite_step(stmt)
+
+  sqlite_finalize(stmt)
+  sqlite_close(db)
+}
+
+///|
+test "sqlite_db_filename_and_readonly" {
+  let db = sqlite_open(to_c_string(":memory:"))
+
+  // メモリデータベースのファイル名を取得（"main"データベース）
+  let _ = sqlite_db_filename(db, to_c_string("main"))
+
+  // メモリデータベースは読み取り専用ではない
+  let is_readonly = sqlite_db_readonly(db, to_c_string("main"))
+  assert_eq(is_readonly, 0)
+
+  sqlite_close(db)
+}
+
+///|
+test "sqlite_expanded_sql" {
+  let db = sqlite_open(to_c_string(":memory:"))
+  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value TEXT)"))
+
+  // パラメータ付きクエリを準備
+  let stmt = sqlite_prepare(
+    db,
+    to_c_string("SELECT * FROM t WHERE id = ? AND value = ?"),
+  )
+
+  // パラメータをバインド
+  let _ = sqlite_bind_int(stmt, 1, 42)
+  let _ = sqlite_bind_text(stmt, 2, to_c_string("test"))
+
+  // 展開されたSQLを取得（パラメータが実際の値で置き換えられる）
+  let _ = sqlite_expanded_sql(stmt)
 
   sqlite_finalize(stmt)
   sqlite_close(db)

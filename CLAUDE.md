@@ -11,8 +11,8 @@ This project targets **native** (not wasm-gc). All build and test commands must 
 This project uses C language bindings via MoonBit's C-FFI feature.
 
 **Key files:**
-- `cwrap.c` - C wrapper functions that MoonBit calls via `extern "C"`
-- `moon.pkg.json` - Contains `"native-stub": ["cwrap.c"]` to include C source
+- `stub.c` - C wrapper functions that MoonBit calls via `extern "C"`
+- `moon.pkg.json` - Contains `"native-stub": ["stub.c"]` to include C source
 
 **How it works:**
 1. MoonBit declares external C functions: `extern "C" fn name(args) -> Type = "c_func_name"`

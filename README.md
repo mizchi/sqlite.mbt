@@ -12,6 +12,12 @@ SQLite database bindings for MoonBit - C FFI wrapper for SQLite3.
 - Transaction support (BEGIN, COMMIT, ROLLBACK, SAVEPOINT)
 - UTF-8 text encoding
 
+## Requirments
+
+- libsqlite3
+  - Ubuntu: `apt install libsqlite3-dev`
+  - Mac: Installed
+
 ## Usage
 
 ```moonbit

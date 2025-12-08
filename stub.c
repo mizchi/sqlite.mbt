@@ -108,3 +108,65 @@ const char* sqlite_column_text(sqlite3_stmt* stmt, int32_t col) {
 void sqlite_reset(sqlite3_stmt* stmt) {
     sqlite3_reset(stmt);
 }
+
+// エラーハンドリング
+int32_t sqlite_errcode(sqlite3* db) {
+    return sqlite3_errcode(db);
+}
+
+const char* sqlite_errmsg(sqlite3* db) {
+    return sqlite3_errmsg(db);
+}
+
+// 追加のバインド関数
+int32_t sqlite_bind_null(sqlite3_stmt* stmt, int32_t idx) {
+    return sqlite3_bind_null(stmt, idx);
+}
+
+int32_t sqlite_bind_int64(sqlite3_stmt* stmt, int32_t idx, int64_t value) {
+    return sqlite3_bind_int64(stmt, idx, value);
+}
+
+int32_t sqlite_bind_blob(sqlite3_stmt* stmt, int32_t idx, moonbit_bytes_t blob) {
+    int32_t len = Moonbit_array_length(blob);
+    return sqlite3_bind_blob(stmt, idx, blob, len, SQLITE_TRANSIENT);
+}
+
+// 追加のカラム取得関数
+int64_t sqlite_column_int64(sqlite3_stmt* stmt, int32_t col) {
+    return sqlite3_column_int64(stmt, col);
+}
+
+const void* sqlite_column_blob(sqlite3_stmt* stmt, int32_t col) {
+    return sqlite3_column_blob(stmt, col);
+}
+
+int32_t sqlite_column_bytes(sqlite3_stmt* stmt, int32_t col) {
+    return sqlite3_column_bytes(stmt, col);
+}
+
+int32_t sqlite_column_type(sqlite3_stmt* stmt, int32_t col) {
+    return sqlite3_column_type(stmt, col);
+}
+
+// メタデータ関数
+int32_t sqlite_column_count(sqlite3_stmt* stmt) {
+    return sqlite3_column_count(stmt);
+}
+
+const char* sqlite_column_name(sqlite3_stmt* stmt, int32_t col) {
+    return sqlite3_column_name(stmt, col);
+}
+
+int32_t sqlite_changes(sqlite3* db) {
+    return sqlite3_changes(db);
+}
+
+int64_t sqlite_last_insert_rowid(sqlite3* db) {
+    return sqlite3_last_insert_rowid(db);
+}
+
+// ステートメントクリア
+int32_t sqlite_clear_bindings(sqlite3_stmt* stmt) {
+    return sqlite3_clear_bindings(stmt);
+}

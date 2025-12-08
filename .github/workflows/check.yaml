@@ -1,0 +1,52 @@
+name: check
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - main
+      
+  pull_request:
+
+jobs:
+  check:
+    strategy:
+      matrix:
+        version: [stable,pre-release]
+        os:
+          - name: ubuntu-latest
+            triple: x86_64-linux-gnu          
+      fail-fast: false
+    runs-on: ${{ matrix.os.name }}
+    continue-on-error: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Setup Moon
+        uses: illusory0x0/setup-moonbit@v0.1.0
+        with: 
+          version: ${{ matrix.version }}
+      - name: moon version
+        run: |
+          moon version --all
+      - name: install module dependencies
+        run: |
+          moon update
+          moon install
+      - name: moon check
+        run: moon check --deny-warn --target native
+      - name: moon info
+        run: |
+          moon info --target native
+          git diff --exit-code
+      - name: format diff
+        run: |
+          moon fmt
+          git diff --exit-code
+
+      - name: moon test
+        run: |
+          moon test --target native

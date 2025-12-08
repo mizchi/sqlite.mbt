@@ -1,3 +1,4 @@
+///|
 test "sqlite_open_close" {
   let db = sqlite_open(to_c_string(":memory:"))
   assert_false(sqlite_is_null(db) == 1)
@@ -94,9 +95,7 @@ test "database_integration" {
   // Create in-memory database
   let db = match Database::open(":memory:") {
     Some(d) => d
-    None => {
-      abort("Failed to open database")
-    }
+    None => abort("Failed to open database")
   }
 
   // Create table
@@ -121,7 +120,6 @@ test "database_integration" {
       assert_eq(sqlite_step(stmt), SQLITE_ROW)
       assert_eq(sqlite_column_int(stmt, 0), 2)
       assert_eq(sqlite_column_int(stmt, 2), 25)
-
       sqlite_finalize(stmt)
     }
     None => abort("Failed to prepare statement")
@@ -132,7 +130,10 @@ test "database_integration" {
 ///|
 test "sqlite_bind_double" {
   let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value REAL)"))
+  let _ = sqlite_exec(
+    db,
+    to_c_string("CREATE TABLE t (id INTEGER, value REAL)"),
+  )
   let stmt = sqlite_prepare(
     db,
     to_c_string("INSERT INTO t (id, value) VALUES (?, ?)"),
@@ -143,7 +144,10 @@ test "sqlite_bind_double" {
   sqlite_finalize(stmt)
 
   // Verify
-  let stmt2 = sqlite_prepare(db, to_c_string("SELECT value FROM t WHERE id = 1"))
+  let stmt2 = sqlite_prepare(
+    db,
+    to_c_string("SELECT value FROM t WHERE id = 1"),
+  )
   assert_eq(sqlite_step(stmt2), SQLITE_ROW)
   let val = sqlite_column_double(stmt2, 0)
   assert_true(val > 3.13 && val < 3.15)
@@ -154,7 +158,10 @@ test "sqlite_bind_double" {
 ///|
 test "sqlite_bind_null" {
   let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value TEXT)"))
+  let _ = sqlite_exec(
+    db,
+    to_c_string("CREATE TABLE t (id INTEGER, value TEXT)"),
+  )
   let stmt = sqlite_prepare(
     db,
     to_c_string("INSERT INTO t (id, value) VALUES (?, ?)"),
@@ -165,7 +172,10 @@ test "sqlite_bind_null" {
   sqlite_finalize(stmt)
 
   // Verify NULL value
-  let stmt2 = sqlite_prepare(db, to_c_string("SELECT value FROM t WHERE id = 1"))
+  let stmt2 = sqlite_prepare(
+    db,
+    to_c_string("SELECT value FROM t WHERE id = 1"),
+  )
   assert_eq(sqlite_step(stmt2), SQLITE_ROW)
   assert_eq(sqlite_column_type(stmt2, 0), SQLITE_NULL)
   sqlite_finalize(stmt2)
@@ -175,7 +185,10 @@ test "sqlite_bind_null" {
 ///|
 test "sqlite_int64" {
   let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value INTEGER)"))
+  let _ = sqlite_exec(
+    db,
+    to_c_string("CREATE TABLE t (id INTEGER, value INTEGER)"),
+  )
   let stmt = sqlite_prepare(
     db,
     to_c_string("INSERT INTO t (id, value) VALUES (?, ?)"),
@@ -187,7 +200,10 @@ test "sqlite_int64" {
   sqlite_finalize(stmt)
 
   // Verify
-  let stmt2 = sqlite_prepare(db, to_c_string("SELECT value FROM t WHERE id = 1"))
+  let stmt2 = sqlite_prepare(
+    db,
+    to_c_string("SELECT value FROM t WHERE id = 1"),
+  )
   assert_eq(sqlite_step(stmt2), SQLITE_ROW)
   assert_eq(sqlite_column_int64(stmt2, 0), large_val)
   sqlite_finalize(stmt2)
@@ -228,7 +244,6 @@ test "sqlite_column_type" {
     db,
     to_c_string("INSERT INTO t VALUES (42, 3.14, 'hello', X'DEAD', NULL)"),
   )
-
   let stmt = sqlite_prepare(db, to_c_string("SELECT * FROM t"))
   assert_eq(sqlite_step(stmt), SQLITE_ROW)
   assert_eq(sqlite_column_type(stmt, 0), SQLITE_INTEGER)
@@ -247,7 +262,6 @@ test "sqlite_column_count_and_name" {
     db,
     to_c_string("CREATE TABLE t (id INTEGER, name TEXT, age INTEGER)"),
   )
-
   let stmt = sqlite_prepare(db, to_c_string("SELECT id, name, age FROM t"))
   assert_eq(sqlite_column_count(stmt), 3)
   let _ = sqlite_column_name(stmt, 0) // "id"
@@ -276,21 +290,25 @@ test "sqlite_changes_and_last_insert_rowid" {
   assert_eq(sqlite_last_insert_rowid(db), 1L)
 
   // Insert one more row
-  let stmt2 = sqlite_prepare(db, to_c_string("INSERT INTO t (value) VALUES (?)"))
+  let stmt2 = sqlite_prepare(
+    db,
+    to_c_string("INSERT INTO t (value) VALUES (?)"),
+  )
   let _ = sqlite_bind_int(stmt2, 1, 200)
   let _ = sqlite_step(stmt2)
   sqlite_finalize(stmt2)
-
   assert_eq(sqlite_changes(db), 1)
   assert_eq(sqlite_last_insert_rowid(db), 2L)
-
   sqlite_close(db)
 }
 
 ///|
 test "sqlite_clear_bindings" {
   let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value INTEGER)"))
+  let _ = sqlite_exec(
+    db,
+    to_c_string("CREATE TABLE t (id INTEGER, value INTEGER)"),
+  )
   let stmt = sqlite_prepare(
     db,
     to_c_string("INSERT INTO t (id, value) VALUES (?, ?)"),
@@ -311,7 +329,10 @@ test "sqlite_clear_bindings" {
   sqlite_finalize(stmt)
 
   // Verify
-  let stmt2 = sqlite_prepare(db, to_c_string("SELECT value FROM t WHERE id = 2"))
+  let stmt2 = sqlite_prepare(
+    db,
+    to_c_string("SELECT value FROM t WHERE id = 2"),
+  )
   assert_eq(sqlite_step(stmt2), SQLITE_ROW)
   assert_eq(sqlite_column_int(stmt2, 0), 200)
   sqlite_finalize(stmt2)
@@ -338,7 +359,6 @@ test "database_error_handling" {
   // Also get extended error code
   let ext_code = db.extended_errcode()
   assert_true(ext_code != SQLITE_OK)
-
   db.close()
 }
 
@@ -349,15 +369,13 @@ test "database_open_failure" {
   // Instead, test a path that cannot be opened
   let result = Database::open("/dev/null/impossible/path/database.db")
   match result {
-    Some(_) => {
+    Some(_) =>
       // It may actually open, but that's OK
       // The purpose of this test is to cover the None path
       ()
-    }
-    None => {
+    None =>
       // Error path covered
       assert_true(true)
-    }
   }
 }
 
@@ -372,9 +390,8 @@ test "database_prepare_failure" {
   let result = db.prepare("COMPLETELY INVALID SQL THAT WILL NEVER PARSE")
   match result {
     Some(_) => abort("Should have failed to prepare invalid SQL")
-    None => ()  // Error path covered
+    None => () // Error path covered
   }
-
   db.close()
 }
 
@@ -400,7 +417,6 @@ test "sqlite_extended_errcode_and_errstr" {
   let _ = sqlite_errstr(errcode)
   let _ = sqlite_errstr(ext_errcode)
   let _ = sqlite_errstr(SQLITE_OK)
-
   sqlite_close(db)
 }
 
@@ -410,20 +426,15 @@ test "database_changes_and_rowid" {
     Some(d) => d
     None => abort("Failed to open database")
   }
-
-  assert_true(
-    db.exec("CREATE TABLE t (id INTEGER PRIMARY KEY, value INTEGER)"),
-  )
+  assert_true(db.exec("CREATE TABLE t (id INTEGER PRIMARY KEY, value INTEGER)"))
 
   // Insert
   assert_true(db.exec("INSERT INTO t (value) VALUES (100)"))
   assert_eq(db.changes(), 1)
   assert_eq(db.last_insert_rowid(), 1L)
-
   assert_true(db.exec("INSERT INTO t (value) VALUES (200)"))
   assert_eq(db.changes(), 1)
   assert_eq(db.last_insert_rowid(), 2L)
-
   db.close()
 }
 
@@ -449,7 +460,10 @@ test "sqlite_get_autocommit" {
 ///|
 test "sqlite_total_changes" {
   let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value INTEGER)"))
+  let _ = sqlite_exec(
+    db,
+    to_c_string("CREATE TABLE t (id INTEGER, value INTEGER)"),
+  )
   assert_eq(sqlite_total_changes(db), 0)
   let _ = sqlite_exec(db, to_c_string("INSERT INTO t VALUES (1, 100)"))
   let _ = sqlite_exec(db, to_c_string("INSERT INTO t VALUES (2, 200)"))
@@ -535,7 +549,10 @@ test "database_autocommit_and_total_changes" {
 ///|
 test "sqlite_bind_parameter_name_and_index" {
   let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value TEXT)"))
+  let _ = sqlite_exec(
+    db,
+    to_c_string("CREATE TABLE t (id INTEGER, value TEXT)"),
+  )
 
   // Query with named parameters
   let stmt = sqlite_prepare(
@@ -560,7 +577,6 @@ test "sqlite_bind_parameter_name_and_index" {
   let _ = sqlite_bind_int(stmt, id_idx, 100)
   let _ = sqlite_bind_text(stmt, value_idx, to_c_string("test"))
   let _ = sqlite_step(stmt)
-
   sqlite_finalize(stmt)
   sqlite_close(db)
 }
@@ -575,14 +591,16 @@ test "sqlite_db_filename_and_readonly" {
   // Memory database is not read-only
   let is_readonly = sqlite_db_readonly(db, to_c_string("main"))
   assert_eq(is_readonly, 0)
-
   sqlite_close(db)
 }
 
 ///|
 test "sqlite_expanded_sql" {
   let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value TEXT)"))
+  let _ = sqlite_exec(
+    db,
+    to_c_string("CREATE TABLE t (id INTEGER, value TEXT)"),
+  )
 
   // Prepare query with parameters
   let stmt = sqlite_prepare(
@@ -596,7 +614,6 @@ test "sqlite_expanded_sql" {
 
   // Get expanded SQL (parameters replaced with actual values)
   let _ = sqlite_expanded_sql(stmt)
-
   sqlite_finalize(stmt)
   sqlite_close(db)
 }
@@ -613,7 +630,6 @@ test "sqlite_open_v2" {
 
   // Create table
   let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER)"))
-
   sqlite_close(db)
 }
 
@@ -632,7 +648,6 @@ test "sqlite_limit" {
   // Get column limit
   let column_limit = sqlite_limit(db, SQLITE_LIMIT_COLUMN, -1)
   assert_true(column_limit > 0)
-
   sqlite_close(db)
 }
 
@@ -642,7 +657,6 @@ test "transaction_basic" {
     Some(d) => d
     None => abort("Failed to open database")
   }
-
   assert_true(db.exec("CREATE TABLE t (id INTEGER, value INTEGER)"))
 
   // Begin transaction
@@ -666,7 +680,6 @@ test "transaction_basic" {
     }
     None => abort("Failed to prepare")
   }
-
   db.close()
 }
 
@@ -676,7 +689,6 @@ test "transaction_rollback" {
     Some(d) => d
     None => abort("Failed to open database")
   }
-
   assert_true(db.exec("CREATE TABLE t (id INTEGER, value INTEGER)"))
   assert_true(db.exec("INSERT INTO t VALUES (1, 100)"))
 
@@ -699,7 +711,6 @@ test "transaction_rollback" {
     }
     None => abort("Failed to prepare")
   }
-
   db.close()
 }
 
@@ -709,17 +720,14 @@ test "transaction_savepoint" {
     Some(d) => d
     None => abort("Failed to open database")
   }
-
   assert_true(db.exec("CREATE TABLE t (id INTEGER, value INTEGER)"))
 
   // Begin transaction
   assert_true(db.begin())
-
   assert_true(db.exec("INSERT INTO t VALUES (1, 100)"))
 
   // Create savepoint
   assert_true(db.savepoint("sp1"))
-
   assert_true(db.exec("INSERT INTO t VALUES (2, 200)"))
 
   // Rollback to savepoint
@@ -740,7 +748,6 @@ test "transaction_savepoint" {
     }
     None => abort("Failed to prepare")
   }
-
   db.close()
 }
 
@@ -750,7 +757,6 @@ test "transaction_immediate_and_exclusive" {
     Some(d) => d
     None => abort("Failed to open database")
   }
-
   assert_true(db.exec("CREATE TABLE t (id INTEGER)"))
 
   // IMMEDIATE transaction
@@ -764,6 +770,5 @@ test "transaction_immediate_and_exclusive" {
   assert_false(db.get_autocommit())
   assert_true(db.exec("INSERT INTO t VALUES (2)"))
   assert_true(db.commit())
-
   db.close()
 }

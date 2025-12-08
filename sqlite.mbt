@@ -258,6 +258,7 @@ pub const SQLITE_ROW : Int = 100
 pub const SQLITE_DONE : Int = 101
 
 // SQLite type constants
+
 ///|
 pub const SQLITE_INTEGER : Int = 1
 
@@ -274,6 +275,7 @@ pub const SQLITE_BLOB : Int = 4
 pub const SQLITE_NULL : Int = 5
 
 // sqlite3_open_v2 flags
+
 ///|
 pub const SQLITE_OPEN_READONLY : Int = 0x00000001
 
@@ -293,6 +295,7 @@ pub const SQLITE_OPEN_NOMUTEX : Int = 0x00008000
 pub const SQLITE_OPEN_FULLMUTEX : Int = 0x00010000
 
 // sqlite3_limit ID constants
+
 ///|
 pub const SQLITE_LIMIT_LENGTH : Int = 0
 

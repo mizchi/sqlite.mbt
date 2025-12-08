@@ -1,8 +1,12 @@
 {
   "name": "mizchi/sqlite",
   "version": "0.1.0",
+  "license": "MIT",
+  "keywords": ["native", "sqlite"],
   "deps": {
     "moonbitlang/x": "0.4.37"
   },
+  "repository": "https://github.com/mizchi/sqlite.mbt",
+  "description": "libsqlite3 bindings for MoonBit",
   "preferred-target": "native"
 }

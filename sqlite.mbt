@@ -29,15 +29,15 @@ extern "C" fn sqlite_exec(db : Sqlite3, sql : Bytes) -> Int = "sqlite_exec"
 
 ///|
 #borrow(db, sql)
-extern "C" fn sqlite_prepare(db : Sqlite3, sql : Bytes) -> Sqlite3Stmt = "sqlite_prepare"
+pub extern "C" fn sqlite_prepare(db : Sqlite3, sql : Bytes) -> Sqlite3Stmt = "sqlite_prepare"
 
 ///|
 #borrow(stmt)
-extern "C" fn sqlite_stmt_is_null(stmt : Sqlite3Stmt) -> Int = "sqlite_stmt_is_null"
+pub extern "C" fn sqlite_stmt_is_null(stmt : Sqlite3Stmt) -> Int = "sqlite_stmt_is_null"
 
 ///|
 #borrow(stmt)
-extern "C" fn sqlite_finalize(stmt : Sqlite3Stmt) -> Unit = "sqlite_finalize"
+pub extern "C" fn sqlite_finalize(stmt : Sqlite3Stmt) -> Unit = "sqlite_finalize"
 
 ///|
 #borrow(stmt)
@@ -57,15 +57,15 @@ extern "C" fn sqlite_bind_text(
 
 ///|
 #borrow(stmt)
-extern "C" fn sqlite_step(stmt : Sqlite3Stmt) -> Int = "sqlite_step"
+pub extern "C" fn sqlite_step(stmt : Sqlite3Stmt) -> Int = "sqlite_step"
 
 ///|
 #borrow(stmt)
-extern "C" fn sqlite_column_int(stmt : Sqlite3Stmt, col : Int) -> Int = "sqlite_column_int"
+pub extern "C" fn sqlite_column_int(stmt : Sqlite3Stmt, col : Int) -> Int = "sqlite_column_int"
 
 ///|
 #borrow(stmt)
-extern "C" fn sqlite_column_text(stmt : Sqlite3Stmt, col : Int) -> Bytes = "sqlite_column_text"
+pub extern "C" fn sqlite_column_text(stmt : Sqlite3Stmt, col : Int) -> Bytes = "sqlite_column_text"
 
 ///|
 #borrow(stmt)
@@ -77,7 +77,7 @@ extern "C" fn sqlite_reset(stmt : Sqlite3Stmt) -> Unit = "sqlite_reset"
 const SQLITE_OK : Int = 0
 
 ///|
-const SQLITE_ROW : Int = 100
+pub const SQLITE_ROW : Int = 100
 
 // String -> Bytes 変換ヘルパー（UTF-8エンコーディング）
 // Using @encoding from moonbitlang/x/encoding
@@ -122,49 +122,6 @@ pub fn Database::prepare(self : Database, sql : String) -> Sqlite3Stmt? {
   } else {
     Some(stmt)
   }
-}
-
-///|
-fn main {
-  println("=== SQLite Demo ===")
-
-  // メモリ上にデータベースを作成
-  let db = match Database::open(":memory:") {
-    Some(d) => d
-    None => {
-      println("Failed to open database")
-      return
-    }
-  }
-  println("Database opened")
-
-  // テーブル作成
-  let ok = db.exec(
-    "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)",
-  )
-  println("CREATE TABLE: \{ok}")
-
-  // データ挿入
-  let ok = db.exec("INSERT INTO users (name, age) VALUES ('Alice', 30)")
-  println("INSERT Alice: \{ok}")
-  let ok = db.exec("INSERT INTO users (name, age) VALUES ('Bob', 25)")
-  println("INSERT Bob: \{ok}")
-
-  // クエリ実行
-  match db.prepare("SELECT id, name, age FROM users") {
-    Some(stmt) => {
-      println("Query results:")
-      while sqlite_step(stmt) == SQLITE_ROW {
-        let id = sqlite_column_int(stmt, 0)
-        let age = sqlite_column_int(stmt, 2)
-        println("  id=\{id}, age=\{age}")
-      }
-      sqlite_finalize(stmt)
-    }
-    None => println("Failed to prepare statement")
-  }
-  db.close()
-  println("Database closed")
 }
 
 ///|
@@ -257,4 +214,44 @@ test "sqlite_reset" {
   assert_eq(sqlite_column_int(stmt2, 0), 2)
   sqlite_finalize(stmt2)
   sqlite_close(db)
+}
+
+///|
+test "database_integration" {
+  // メモリ上にデータベースを作成
+  let db = match Database::open(":memory:") {
+    Some(d) => d
+    None => {
+      abort("Failed to open database")
+    }
+  }
+
+  // テーブル作成
+  let ok = db.exec(
+    "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)",
+  )
+  assert_true(ok)
+
+  // データ挿入
+  assert_true(db.exec("INSERT INTO users (name, age) VALUES ('Alice', 30)"))
+  assert_true(db.exec("INSERT INTO users (name, age) VALUES ('Bob', 25)"))
+
+  // クエリ実行
+  match db.prepare("SELECT id, name, age FROM users") {
+    Some(stmt) => {
+      // 1件目: Alice
+      assert_eq(sqlite_step(stmt), SQLITE_ROW)
+      assert_eq(sqlite_column_int(stmt, 0), 1)
+      assert_eq(sqlite_column_int(stmt, 2), 30)
+
+      // 2件目: Bob
+      assert_eq(sqlite_step(stmt), SQLITE_ROW)
+      assert_eq(sqlite_column_int(stmt, 0), 2)
+      assert_eq(sqlite_column_int(stmt, 2), 25)
+
+      sqlite_finalize(stmt)
+    }
+    None => abort("Failed to prepare statement")
+  }
+  db.close()
 }

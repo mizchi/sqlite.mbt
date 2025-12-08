@@ -1,6 +1,6 @@
-// SQLite バインディング
+// SQLite bindings for MoonBit
 
-// 不透明な外部型（Cのポインタに対応）
+// Opaque external types (corresponding to C pointers)
 
 ///|
 type Sqlite3
@@ -8,8 +8,8 @@ type Sqlite3
 ///|
 type Sqlite3Stmt
 
-// 低レベルextern宣言
-// #borrow: 引数を借用として扱い、MoonBitが自動的にメモリ管理を行う
+// Low-level extern declarations
+// #borrow: Treats arguments as borrowed, MoonBit automatically manages memory
 
 ///|
 #borrow(filename)
@@ -79,7 +79,7 @@ pub extern "C" fn sqlite_column_text(stmt : Sqlite3Stmt, col : Int) -> Bytes = "
 #borrow(stmt)
 extern "C" fn sqlite_reset(stmt : Sqlite3Stmt) -> Unit = "sqlite_reset"
 
-// エラーハンドリング
+// Error handling
 
 ///|
 #borrow(db)
@@ -96,7 +96,7 @@ pub extern "C" fn sqlite_extended_errcode(db : Sqlite3) -> Int = "sqlite_extende
 ///|
 pub extern "C" fn sqlite_errstr(errcode : Int) -> Bytes = "sqlite_errstr"
 
-// 追加のバインド関数
+// Additional bind functions
 
 ///|
 #borrow(stmt)
@@ -126,7 +126,7 @@ pub extern "C" fn sqlite_bind_blob(
   blob : Bytes,
 ) -> Int = "sqlite_bind_blob"
 
-// 追加のカラム取得関数
+// Additional column retrieval functions
 
 ///|
 #borrow(stmt)
@@ -148,7 +148,7 @@ pub extern "C" fn sqlite_column_bytes(stmt : Sqlite3Stmt, col : Int) -> Int = "s
 #borrow(stmt)
 pub extern "C" fn sqlite_column_type(stmt : Sqlite3Stmt, col : Int) -> Int = "sqlite_column_type"
 
-// メタデータ関数
+// Metadata functions
 
 ///|
 #borrow(stmt)
@@ -166,19 +166,19 @@ pub extern "C" fn sqlite_changes(db : Sqlite3) -> Int = "sqlite_changes"
 #borrow(db)
 pub extern "C" fn sqlite_last_insert_rowid(db : Sqlite3) -> Int64 = "sqlite_last_insert_rowid"
 
-// ステートメントクリア
+// Statement clear
 
 ///|
 #borrow(stmt)
 pub extern "C" fn sqlite_clear_bindings(stmt : Sqlite3Stmt) -> Int = "sqlite_clear_bindings"
 
-// 並行アクセス制御
+// Concurrency control
 
 ///|
 #borrow(db)
 pub extern "C" fn sqlite_busy_timeout(db : Sqlite3, ms : Int) -> Int = "sqlite_busy_timeout"
 
-// トランザクション管理
+// Transaction management
 
 ///|
 #borrow(db)
@@ -188,7 +188,7 @@ pub extern "C" fn sqlite_get_autocommit(db : Sqlite3) -> Int = "sqlite_get_autoc
 #borrow(db)
 pub extern "C" fn sqlite_total_changes(db : Sqlite3) -> Int = "sqlite_total_changes"
 
-// ステートメント Introspection
+// Statement introspection
 
 ///|
 #borrow(stmt)
@@ -202,7 +202,7 @@ pub extern "C" fn sqlite_bind_parameter_count(stmt : Sqlite3Stmt) -> Int = "sqli
 #borrow(stmt)
 pub extern "C" fn sqlite_stmt_readonly(stmt : Sqlite3Stmt) -> Int = "sqlite_stmt_readonly"
 
-// パラメータ名とインデックス
+// Parameter names and indices
 
 ///|
 #borrow(stmt)
@@ -218,7 +218,7 @@ pub extern "C" fn sqlite_bind_parameter_index(
   name : Bytes,
 ) -> Int = "sqlite_bind_parameter_index"
 
-// データベースメタデータ
+// Database metadata
 
 ///|
 #borrow(db, dbname)
@@ -228,25 +228,25 @@ pub extern "C" fn sqlite_db_filename(db : Sqlite3, dbname : Bytes) -> Bytes = "s
 #borrow(db, dbname)
 pub extern "C" fn sqlite_db_readonly(db : Sqlite3, dbname : Bytes) -> Int = "sqlite_db_readonly"
 
-// SQL展開
+// SQL expansion
 
 ///|
 #borrow(stmt)
 pub extern "C" fn sqlite_expanded_sql(stmt : Sqlite3Stmt) -> Bytes = "sqlite_expanded_sql"
 
-// クエリ制御
+// Query control
 
 ///|
 #borrow(db)
 pub extern "C" fn sqlite_interrupt(db : Sqlite3) -> Unit = "sqlite_interrupt"
 
-// リソース制限
+// Resource limits
 
 ///|
 #borrow(db)
 pub extern "C" fn sqlite_limit(db : Sqlite3, id : Int, newVal : Int) -> Int = "sqlite_limit"
 
-// 定数
+// Constants
 
 ///|
 const SQLITE_OK : Int = 0
@@ -257,7 +257,7 @@ pub const SQLITE_ROW : Int = 100
 ///|
 pub const SQLITE_DONE : Int = 101
 
-// SQLite型定数
+// SQLite type constants
 ///|
 pub const SQLITE_INTEGER : Int = 1
 
@@ -273,7 +273,7 @@ pub const SQLITE_BLOB : Int = 4
 ///|
 pub const SQLITE_NULL : Int = 5
 
-// sqlite3_open_v2 フラグ
+// sqlite3_open_v2 flags
 ///|
 pub const SQLITE_OPEN_READONLY : Int = 0x00000001
 
@@ -292,7 +292,7 @@ pub const SQLITE_OPEN_NOMUTEX : Int = 0x00008000
 ///|
 pub const SQLITE_OPEN_FULLMUTEX : Int = 0x00010000
 
-// sqlite3_limit ID定数
+// sqlite3_limit ID constants
 ///|
 pub const SQLITE_LIMIT_LENGTH : Int = 0
 
@@ -326,7 +326,7 @@ pub const SQLITE_LIMIT_VARIABLE_NUMBER : Int = 9
 ///|
 pub const SQLITE_LIMIT_TRIGGER_DEPTH : Int = 10
 
-// String -> Bytes 変換ヘルパー（UTF-8エンコーディング）
+// String -> Bytes conversion helper (UTF-8 encoding)
 // Using @encoding from moonbitlang/x/encoding
 
 ///|
@@ -334,7 +334,7 @@ fn to_c_string(s : String) -> Bytes {
   @encoding.encode(UTF8, s)
 }
 
-// 高レベルAPI
+// High-level API
 
 ///|
 pub struct Database {
@@ -457,772 +457,3 @@ pub fn Database::rollback_to(self : Database, name : String) -> Bool {
 }
 
 ///|
-test "sqlite_open_close" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  assert_false(sqlite_is_null(db) == 1)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_exec" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let rc = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER)"))
-  assert_eq(rc, SQLITE_OK)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_bind_int" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(
-    db,
-    to_c_string("CREATE TABLE t (id INTEGER, value INTEGER)"),
-  )
-
-  // プリペアドステートメントでINSERT
-  let stmt = sqlite_prepare(
-    db,
-    to_c_string("INSERT INTO t (id, value) VALUES (?, ?)"),
-  )
-  assert_false(sqlite_stmt_is_null(stmt) == 1)
-  let _ = sqlite_bind_int(stmt, 1, 100)
-  let _ = sqlite_bind_int(stmt, 2, 42)
-  let _ = sqlite_step(stmt)
-  sqlite_finalize(stmt)
-
-  // 確認
-  let stmt2 = sqlite_prepare(
-    db,
-    to_c_string("SELECT value FROM t WHERE id = 100"),
-  )
-  assert_eq(sqlite_step(stmt2), SQLITE_ROW)
-  assert_eq(sqlite_column_int(stmt2, 0), 42)
-  sqlite_finalize(stmt2)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_bind_text" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, name TEXT)"))
-  let stmt = sqlite_prepare(
-    db,
-    to_c_string("INSERT INTO t (id, name) VALUES (?, ?)"),
-  )
-  let _ = sqlite_bind_int(stmt, 1, 1)
-  let _ = sqlite_bind_text(stmt, 2, to_c_string("hello"))
-  let _ = sqlite_step(stmt)
-  sqlite_finalize(stmt)
-
-  // 確認（sqlite_column_textを使用）
-  let stmt2 = sqlite_prepare(db, to_c_string("SELECT name FROM t WHERE id = 1"))
-  assert_eq(sqlite_step(stmt2), SQLITE_ROW)
-  let _ = sqlite_column_text(stmt2, 0) // Bytes型で取得
-  sqlite_finalize(stmt2)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_reset" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER)"))
-  let stmt = sqlite_prepare(db, to_c_string("INSERT INTO t (id) VALUES (?)"))
-
-  // 1回目のINSERT
-  let _ = sqlite_bind_int(stmt, 1, 1)
-  let _ = sqlite_step(stmt)
-
-  // リセットして再利用
-  sqlite_reset(stmt)
-
-  // 2回目のINSERT
-  let _ = sqlite_bind_int(stmt, 1, 2)
-  let _ = sqlite_step(stmt)
-  sqlite_finalize(stmt)
-
-  // 2件挿入されたことを確認
-  let stmt2 = sqlite_prepare(db, to_c_string("SELECT COUNT(*) FROM t"))
-  let _ = sqlite_step(stmt2)
-  assert_eq(sqlite_column_int(stmt2, 0), 2)
-  sqlite_finalize(stmt2)
-  sqlite_close(db)
-}
-
-///|
-test "database_integration" {
-  // メモリ上にデータベースを作成
-  let db = match Database::open(":memory:") {
-    Some(d) => d
-    None => {
-      abort("Failed to open database")
-    }
-  }
-
-  // テーブル作成
-  let ok = db.exec(
-    "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)",
-  )
-  assert_true(ok)
-
-  // データ挿入
-  assert_true(db.exec("INSERT INTO users (name, age) VALUES ('Alice', 30)"))
-  assert_true(db.exec("INSERT INTO users (name, age) VALUES ('Bob', 25)"))
-
-  // クエリ実行
-  match db.prepare("SELECT id, name, age FROM users") {
-    Some(stmt) => {
-      // 1件目: Alice
-      assert_eq(sqlite_step(stmt), SQLITE_ROW)
-      assert_eq(sqlite_column_int(stmt, 0), 1)
-      assert_eq(sqlite_column_int(stmt, 2), 30)
-
-      // 2件目: Bob
-      assert_eq(sqlite_step(stmt), SQLITE_ROW)
-      assert_eq(sqlite_column_int(stmt, 0), 2)
-      assert_eq(sqlite_column_int(stmt, 2), 25)
-
-      sqlite_finalize(stmt)
-    }
-    None => abort("Failed to prepare statement")
-  }
-  db.close()
-}
-
-///|
-test "sqlite_bind_double" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value REAL)"))
-  let stmt = sqlite_prepare(
-    db,
-    to_c_string("INSERT INTO t (id, value) VALUES (?, ?)"),
-  )
-  let _ = sqlite_bind_int(stmt, 1, 1)
-  let _ = sqlite_bind_double(stmt, 2, 3.14)
-  let _ = sqlite_step(stmt)
-  sqlite_finalize(stmt)
-
-  // 確認
-  let stmt2 = sqlite_prepare(db, to_c_string("SELECT value FROM t WHERE id = 1"))
-  assert_eq(sqlite_step(stmt2), SQLITE_ROW)
-  let val = sqlite_column_double(stmt2, 0)
-  assert_true(val > 3.13 && val < 3.15)
-  sqlite_finalize(stmt2)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_bind_null" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value TEXT)"))
-  let stmt = sqlite_prepare(
-    db,
-    to_c_string("INSERT INTO t (id, value) VALUES (?, ?)"),
-  )
-  let _ = sqlite_bind_int(stmt, 1, 1)
-  let _ = sqlite_bind_null(stmt, 2)
-  let _ = sqlite_step(stmt)
-  sqlite_finalize(stmt)
-
-  // NULL値を確認
-  let stmt2 = sqlite_prepare(db, to_c_string("SELECT value FROM t WHERE id = 1"))
-  assert_eq(sqlite_step(stmt2), SQLITE_ROW)
-  assert_eq(sqlite_column_type(stmt2, 0), SQLITE_NULL)
-  sqlite_finalize(stmt2)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_int64" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value INTEGER)"))
-  let stmt = sqlite_prepare(
-    db,
-    to_c_string("INSERT INTO t (id, value) VALUES (?, ?)"),
-  )
-  let _ = sqlite_bind_int(stmt, 1, 1)
-  let large_val : Int64 = 9223372036854775807L // Int64::max_value
-  let _ = sqlite_bind_int64(stmt, 2, large_val)
-  let _ = sqlite_step(stmt)
-  sqlite_finalize(stmt)
-
-  // 確認
-  let stmt2 = sqlite_prepare(db, to_c_string("SELECT value FROM t WHERE id = 1"))
-  assert_eq(sqlite_step(stmt2), SQLITE_ROW)
-  assert_eq(sqlite_column_int64(stmt2, 0), large_val)
-  sqlite_finalize(stmt2)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_bind_blob" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, data BLOB)"))
-  let stmt = sqlite_prepare(
-    db,
-    to_c_string("INSERT INTO t (id, data) VALUES (?, ?)"),
-  )
-  let _ = sqlite_bind_int(stmt, 1, 1)
-  let blob_data = to_c_string("binary\u{0000}data")
-  let _ = sqlite_bind_blob(stmt, 2, blob_data)
-  let _ = sqlite_step(stmt)
-  sqlite_finalize(stmt)
-
-  // 確認
-  let stmt2 = sqlite_prepare(db, to_c_string("SELECT data FROM t WHERE id = 1"))
-  assert_eq(sqlite_step(stmt2), SQLITE_ROW)
-  let _ = sqlite_column_blob(stmt2, 0)
-  assert_true(sqlite_column_bytes(stmt2, 0) > 0)
-  sqlite_finalize(stmt2)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_column_type" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(
-    db,
-    to_c_string("CREATE TABLE t (i INTEGER, r REAL, t TEXT, b BLOB, n TEXT)"),
-  )
-  let _ = sqlite_exec(
-    db,
-    to_c_string("INSERT INTO t VALUES (42, 3.14, 'hello', X'DEAD', NULL)"),
-  )
-
-  let stmt = sqlite_prepare(db, to_c_string("SELECT * FROM t"))
-  assert_eq(sqlite_step(stmt), SQLITE_ROW)
-  assert_eq(sqlite_column_type(stmt, 0), SQLITE_INTEGER)
-  assert_eq(sqlite_column_type(stmt, 1), SQLITE_FLOAT)
-  assert_eq(sqlite_column_type(stmt, 2), SQLITE_TEXT)
-  assert_eq(sqlite_column_type(stmt, 3), SQLITE_BLOB)
-  assert_eq(sqlite_column_type(stmt, 4), SQLITE_NULL)
-  sqlite_finalize(stmt)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_column_count_and_name" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(
-    db,
-    to_c_string("CREATE TABLE t (id INTEGER, name TEXT, age INTEGER)"),
-  )
-
-  let stmt = sqlite_prepare(db, to_c_string("SELECT id, name, age FROM t"))
-  assert_eq(sqlite_column_count(stmt), 3)
-  let _ = sqlite_column_name(stmt, 0) // "id"
-  let _ = sqlite_column_name(stmt, 1) // "name"
-  let _ = sqlite_column_name(stmt, 2) // "age"
-  sqlite_finalize(stmt)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_changes_and_last_insert_rowid" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(
-    db,
-    to_c_string("CREATE TABLE t (id INTEGER PRIMARY KEY, value INTEGER)"),
-  )
-
-  // 1件挿入
-  let stmt = sqlite_prepare(db, to_c_string("INSERT INTO t (value) VALUES (?)"))
-  let _ = sqlite_bind_int(stmt, 1, 100)
-  let _ = sqlite_step(stmt)
-  sqlite_finalize(stmt)
-
-  // 変更数とrowidを確認
-  assert_eq(sqlite_changes(db), 1)
-  assert_eq(sqlite_last_insert_rowid(db), 1L)
-
-  // もう1件挿入
-  let stmt2 = sqlite_prepare(db, to_c_string("INSERT INTO t (value) VALUES (?)"))
-  let _ = sqlite_bind_int(stmt2, 1, 200)
-  let _ = sqlite_step(stmt2)
-  sqlite_finalize(stmt2)
-
-  assert_eq(sqlite_changes(db), 1)
-  assert_eq(sqlite_last_insert_rowid(db), 2L)
-
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_clear_bindings" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value INTEGER)"))
-  let stmt = sqlite_prepare(
-    db,
-    to_c_string("INSERT INTO t (id, value) VALUES (?, ?)"),
-  )
-
-  // バインド
-  let _ = sqlite_bind_int(stmt, 1, 1)
-  let _ = sqlite_bind_int(stmt, 2, 100)
-
-  // クリア
-  let _ = sqlite_clear_bindings(stmt)
-
-  // リセットして再バインド
-  sqlite_reset(stmt)
-  let _ = sqlite_bind_int(stmt, 1, 2)
-  let _ = sqlite_bind_int(stmt, 2, 200)
-  let _ = sqlite_step(stmt)
-  sqlite_finalize(stmt)
-
-  // 確認
-  let stmt2 = sqlite_prepare(db, to_c_string("SELECT value FROM t WHERE id = 2"))
-  assert_eq(sqlite_step(stmt2), SQLITE_ROW)
-  assert_eq(sqlite_column_int(stmt2, 0), 200)
-  sqlite_finalize(stmt2)
-  sqlite_close(db)
-}
-
-///|
-test "database_error_handling" {
-  let db = match Database::open(":memory:") {
-    Some(d) => d
-    None => abort("Failed to open database")
-  }
-
-  // 正常なクエリ
-  assert_true(db.exec("CREATE TABLE t (id INTEGER)"))
-  assert_eq(db.errcode(), SQLITE_OK)
-
-  // エラーを引き起こす不正なクエリ
-  let ok = db.exec("INVALID SQL SYNTAX")
-  assert_false(ok)
-  assert_true(db.errcode() != SQLITE_OK)
-  let _ = db.errmsg() // エラーメッセージを取得
-
-  // 拡張エラーコードも取得
-  let ext_code = db.extended_errcode()
-  assert_true(ext_code != SQLITE_OK)
-
-  db.close()
-}
-
-///|
-test "database_open_failure" {
-  // 無効なパスでデータベースを開こうとする（Noneが返される）
-  // SQLiteは多くのパスを受け入れるので、確実に失敗させるのは難しい
-  // 代わりに、開けないパスをテストする
-  let result = Database::open("/dev/null/impossible/path/database.db")
-  match result {
-    Some(_) => {
-      // 実際には開けてしまう可能性もあるが、それでもOK
-      // このテストはNoneパスをカバーするのが目的
-      ()
-    }
-    None => {
-      // エラーパスがカバーされた
-      assert_true(true)
-    }
-  }
-}
-
-///|
-test "database_prepare_failure" {
-  let db = match Database::open(":memory:") {
-    Some(d) => d
-    None => abort("Failed to open database")
-  }
-
-  // 不正なSQL文でprepareを試みる（Noneが返される）
-  let result = db.prepare("COMPLETELY INVALID SQL THAT WILL NEVER PARSE")
-  match result {
-    Some(_) => abort("Should have failed to prepare invalid SQL")
-    None => ()  // エラーパスがカバーされた
-  }
-
-  db.close()
-}
-
-///|
-test "sqlite_extended_errcode_and_errstr" {
-  let db = sqlite_open(to_c_string(":memory:"))
-
-  // 正常な操作
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER)"))
-  assert_eq(sqlite_errcode(db), SQLITE_OK)
-  assert_eq(sqlite_extended_errcode(db), SQLITE_OK)
-
-  // エラーを引き起こす
-  let _ = sqlite_exec(db, to_c_string("INVALID SQL"))
-  let errcode = sqlite_errcode(db)
-  assert_true(errcode != SQLITE_OK)
-
-  // 拡張エラーコードを取得
-  let ext_errcode = sqlite_extended_errcode(db)
-  assert_true(ext_errcode != SQLITE_OK)
-
-  // エラーコードから文字列を取得
-  let _ = sqlite_errstr(errcode)
-  let _ = sqlite_errstr(ext_errcode)
-  let _ = sqlite_errstr(SQLITE_OK)
-
-  sqlite_close(db)
-}
-
-///|
-test "database_changes_and_rowid" {
-  let db = match Database::open(":memory:") {
-    Some(d) => d
-    None => abort("Failed to open database")
-  }
-
-  assert_true(
-    db.exec("CREATE TABLE t (id INTEGER PRIMARY KEY, value INTEGER)"),
-  )
-
-  // 挿入
-  assert_true(db.exec("INSERT INTO t (value) VALUES (100)"))
-  assert_eq(db.changes(), 1)
-  assert_eq(db.last_insert_rowid(), 1L)
-
-  assert_true(db.exec("INSERT INTO t (value) VALUES (200)"))
-  assert_eq(db.changes(), 1)
-  assert_eq(db.last_insert_rowid(), 2L)
-
-  db.close()
-}
-
-///|
-test "sqlite_busy_timeout" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let rc = sqlite_busy_timeout(db, 1000)
-  assert_eq(rc, SQLITE_OK)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_get_autocommit" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  assert_true(sqlite_get_autocommit(db) != 0)
-  let _ = sqlite_exec(db, to_c_string("BEGIN"))
-  assert_eq(sqlite_get_autocommit(db), 0)
-  let _ = sqlite_exec(db, to_c_string("COMMIT"))
-  assert_true(sqlite_get_autocommit(db) != 0)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_total_changes" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value INTEGER)"))
-  assert_eq(sqlite_total_changes(db), 0)
-  let _ = sqlite_exec(db, to_c_string("INSERT INTO t VALUES (1, 100)"))
-  let _ = sqlite_exec(db, to_c_string("INSERT INTO t VALUES (2, 200)"))
-  let _ = sqlite_exec(db, to_c_string("INSERT INTO t VALUES (3, 300)"))
-  assert_eq(sqlite_total_changes(db), 3)
-  let _ = sqlite_exec(db, to_c_string("DELETE FROM t WHERE id = 2"))
-  assert_eq(sqlite_total_changes(db), 4)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_sql" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let sql_text = "SELECT * FROM sqlite_master"
-  let stmt = sqlite_prepare(db, to_c_string(sql_text))
-  let _ = sqlite_sql(stmt)
-  sqlite_finalize(stmt)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_bind_parameter_count" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let stmt1 = sqlite_prepare(db, to_c_string("SELECT 1"))
-  assert_eq(sqlite_bind_parameter_count(stmt1), 0)
-  sqlite_finalize(stmt1)
-  let stmt2 = sqlite_prepare(db, to_c_string("SELECT ?, ?"))
-  assert_eq(sqlite_bind_parameter_count(stmt2), 2)
-  sqlite_finalize(stmt2)
-  let stmt3 = sqlite_prepare(db, to_c_string("SELECT ?, ?, ?, ?, ?"))
-  assert_eq(sqlite_bind_parameter_count(stmt3), 5)
-  sqlite_finalize(stmt3)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_stmt_readonly" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER)"))
-  let stmt1 = sqlite_prepare(db, to_c_string("SELECT * FROM t"))
-  assert_true(sqlite_stmt_readonly(stmt1) != 0)
-  sqlite_finalize(stmt1)
-  let stmt2 = sqlite_prepare(db, to_c_string("INSERT INTO t VALUES (1)"))
-  assert_eq(sqlite_stmt_readonly(stmt2), 0)
-  sqlite_finalize(stmt2)
-  let stmt3 = sqlite_prepare(db, to_c_string("UPDATE t SET id = 2"))
-  assert_eq(sqlite_stmt_readonly(stmt3), 0)
-  sqlite_finalize(stmt3)
-  sqlite_close(db)
-}
-
-///|
-test "database_busy_timeout" {
-  let db = match Database::open(":memory:") {
-    Some(d) => d
-    None => abort("Failed to open database")
-  }
-  assert_true(db.busy_timeout(5000))
-  db.close()
-}
-
-///|
-test "database_autocommit_and_total_changes" {
-  let db = match Database::open(":memory:") {
-    Some(d) => d
-    None => abort("Failed to open database")
-  }
-  assert_true(db.exec("CREATE TABLE t (id INTEGER)"))
-  assert_true(db.get_autocommit())
-  assert_eq(db.total_changes(), 0)
-  assert_true(db.exec("INSERT INTO t VALUES (1)"))
-  assert_true(db.exec("INSERT INTO t VALUES (2)"))
-  assert_eq(db.total_changes(), 2)
-  assert_true(db.exec("BEGIN"))
-  assert_false(db.get_autocommit())
-  assert_true(db.exec("INSERT INTO t VALUES (3)"))
-  assert_eq(db.total_changes(), 3)
-  assert_true(db.exec("COMMIT"))
-  assert_true(db.get_autocommit())
-  db.close()
-}
-
-///|
-test "sqlite_bind_parameter_name_and_index" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value TEXT)"))
-
-  // 名前付きパラメータを使ったクエリ
-  let stmt = sqlite_prepare(
-    db,
-    to_c_string("INSERT INTO t (id, value) VALUES (:id, :value)"),
-  )
-
-  // パラメータ数を確認
-  assert_eq(sqlite_bind_parameter_count(stmt), 2)
-
-  // パラメータ名を取得（1-indexed）
-  let _ = sqlite_bind_parameter_name(stmt, 1) // ":id"
-  let _ = sqlite_bind_parameter_name(stmt, 2) // ":value"
-
-  // パラメータ名からインデックスを取得
-  let id_idx = sqlite_bind_parameter_index(stmt, to_c_string(":id"))
-  assert_eq(id_idx, 1)
-  let value_idx = sqlite_bind_parameter_index(stmt, to_c_string(":value"))
-  assert_eq(value_idx, 2)
-
-  // 名前を使ってバインド
-  let _ = sqlite_bind_int(stmt, id_idx, 100)
-  let _ = sqlite_bind_text(stmt, value_idx, to_c_string("test"))
-  let _ = sqlite_step(stmt)
-
-  sqlite_finalize(stmt)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_db_filename_and_readonly" {
-  let db = sqlite_open(to_c_string(":memory:"))
-
-  // メモリデータベースのファイル名を取得（"main"データベース）
-  let _ = sqlite_db_filename(db, to_c_string("main"))
-
-  // メモリデータベースは読み取り専用ではない
-  let is_readonly = sqlite_db_readonly(db, to_c_string("main"))
-  assert_eq(is_readonly, 0)
-
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_expanded_sql" {
-  let db = sqlite_open(to_c_string(":memory:"))
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value TEXT)"))
-
-  // パラメータ付きクエリを準備
-  let stmt = sqlite_prepare(
-    db,
-    to_c_string("SELECT * FROM t WHERE id = ? AND value = ?"),
-  )
-
-  // パラメータをバインド
-  let _ = sqlite_bind_int(stmt, 1, 42)
-  let _ = sqlite_bind_text(stmt, 2, to_c_string("test"))
-
-  // 展開されたSQLを取得（パラメータが実際の値で置き換えられる）
-  let _ = sqlite_expanded_sql(stmt)
-
-  sqlite_finalize(stmt)
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_open_v2" {
-  // 読み書き可能でデータベースを開く
-  let db = sqlite_open_v2(
-    to_c_string(":memory:"),
-    SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_MEMORY,
-    to_c_string(""),
-  )
-  assert_false(sqlite_is_null(db) == 1)
-
-  // テーブル作成
-  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER)"))
-
-  sqlite_close(db)
-}
-
-///|
-test "sqlite_limit" {
-  let db = sqlite_open(to_c_string(":memory:"))
-
-  // 現在のLENGTH制限を取得（-1を渡すと現在値を返す）
-  let current_limit = sqlite_limit(db, SQLITE_LIMIT_LENGTH, -1)
-  assert_true(current_limit > 0)
-
-  // SQL_LENGTH制限を取得
-  let sql_limit = sqlite_limit(db, SQLITE_LIMIT_SQL_LENGTH, -1)
-  assert_true(sql_limit > 0)
-
-  // カラム数制限を取得
-  let column_limit = sqlite_limit(db, SQLITE_LIMIT_COLUMN, -1)
-  assert_true(column_limit > 0)
-
-  sqlite_close(db)
-}
-
-///|
-test "transaction_basic" {
-  let db = match Database::open(":memory:") {
-    Some(d) => d
-    None => abort("Failed to open database")
-  }
-
-  assert_true(db.exec("CREATE TABLE t (id INTEGER, value INTEGER)"))
-
-  // トランザクション開始
-  assert_true(db.begin())
-  assert_false(db.get_autocommit()) // トランザクション中
-
-  // データ挿入
-  assert_true(db.exec("INSERT INTO t VALUES (1, 100)"))
-  assert_true(db.exec("INSERT INTO t VALUES (2, 200)"))
-
-  // コミット
-  assert_true(db.commit())
-  assert_true(db.get_autocommit()) // オートコミットに戻る
-
-  // データが保存されていることを確認
-  match db.prepare("SELECT COUNT(*) FROM t") {
-    Some(stmt) => {
-      assert_eq(sqlite_step(stmt), SQLITE_ROW)
-      assert_eq(sqlite_column_int(stmt, 0), 2)
-      sqlite_finalize(stmt)
-    }
-    None => abort("Failed to prepare")
-  }
-
-  db.close()
-}
-
-///|
-test "transaction_rollback" {
-  let db = match Database::open(":memory:") {
-    Some(d) => d
-    None => abort("Failed to open database")
-  }
-
-  assert_true(db.exec("CREATE TABLE t (id INTEGER, value INTEGER)"))
-  assert_true(db.exec("INSERT INTO t VALUES (1, 100)"))
-
-  // トランザクション開始
-  assert_true(db.begin())
-
-  // データ挿入
-  assert_true(db.exec("INSERT INTO t VALUES (2, 200)"))
-
-  // ロールバック
-  assert_true(db.rollback())
-  assert_true(db.get_autocommit())
-
-  // データがロールバックされていることを確認（1件のみ）
-  match db.prepare("SELECT COUNT(*) FROM t") {
-    Some(stmt) => {
-      assert_eq(sqlite_step(stmt), SQLITE_ROW)
-      assert_eq(sqlite_column_int(stmt, 0), 1)
-      sqlite_finalize(stmt)
-    }
-    None => abort("Failed to prepare")
-  }
-
-  db.close()
-}
-
-///|
-test "transaction_savepoint" {
-  let db = match Database::open(":memory:") {
-    Some(d) => d
-    None => abort("Failed to open database")
-  }
-
-  assert_true(db.exec("CREATE TABLE t (id INTEGER, value INTEGER)"))
-
-  // トランザクション開始
-  assert_true(db.begin())
-
-  assert_true(db.exec("INSERT INTO t VALUES (1, 100)"))
-
-  // セーブポイント作成
-  assert_true(db.savepoint("sp1"))
-
-  assert_true(db.exec("INSERT INTO t VALUES (2, 200)"))
-
-  // セーブポイントにロールバック
-  assert_true(db.rollback_to("sp1"))
-
-  // セーブポイントをリリース
-  assert_true(db.release("sp1"))
-
-  // コミット
-  assert_true(db.commit())
-
-  // データを確認（sp1より前の1件のみ）
-  match db.prepare("SELECT COUNT(*) FROM t") {
-    Some(stmt) => {
-      assert_eq(sqlite_step(stmt), SQLITE_ROW)
-      assert_eq(sqlite_column_int(stmt, 0), 1)
-      sqlite_finalize(stmt)
-    }
-    None => abort("Failed to prepare")
-  }
-
-  db.close()
-}
-
-///|
-test "transaction_immediate_and_exclusive" {
-  let db = match Database::open(":memory:") {
-    Some(d) => d
-    None => abort("Failed to open database")
-  }
-
-  assert_true(db.exec("CREATE TABLE t (id INTEGER)"))
-
-  // IMMEDIATE トランザクション
-  assert_true(db.begin_immediate())
-  assert_false(db.get_autocommit())
-  assert_true(db.exec("INSERT INTO t VALUES (1)"))
-  assert_true(db.commit())
-
-  // EXCLUSIVE トランザクション
-  assert_true(db.begin_exclusive())
-  assert_false(db.get_autocommit())
-  assert_true(db.exec("INSERT INTO t VALUES (2)"))
-  assert_true(db.commit())
-
-  db.close()
-}

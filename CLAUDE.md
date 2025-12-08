@@ -82,25 +82,36 @@ moon test --target native    # Run tests
   welcome to finish the tasks and check the box when you are done
 
 
-## Known Issues
+## Resolved Issues
 
-### Priority 2 Features - Debugging Required
+### Priority 2 Features - SOLVED ✅
 
-以下の機能は実装済みだが、テストで問題が発生するため一時的に無効化：
+以下の機能は当初SIGBUS/無限ループの問題があったが、解決済み：
 
-1. **`sqlite3_extended_errcode` + `sqlite3_errstr`**
+1. **`sqlite3_extended_errcode` + `sqlite3_errstr`** ✅
    - 問題: SIGBUS エラー
-   - 症状: 27個のテスト全て失敗
-   - 原因: 不明（文字列ポインタの扱いに問題がある可能性）
+   - 原因: SQLiteが返す静的文字列ポインタをMoonBitの`Bytes`型に直接変換しようとすると、メモリアクセス違反が発生
+   - 解決策: 静的文字列をグローバルバッファ（`static char errstr_buffer[256]`）にコピーしてから返す
 
-2. **`sqlite3_bind_parameter_name` + `sqlite3_bind_parameter_index`**
+2. **`sqlite3_bind_parameter_name` + `sqlite3_bind_parameter_index`** ✅
    - 問題: 無限ループまたはハング
-   - 症状: CPU 100%使用、テストがタイムアウト
-   - 原因: 不明（NULLポインタの扱い、またはBytes変換に問題がある可能性）
+   - 原因: 同じく静的文字列の直接変換による問題
+   - 解決策: 静的文字列をグローバルバッファ（`static char param_name_buffer[256]`）にコピーしてから返す
 
-### 今後の調査方針
+### 学習した知見
 
-- MoonBit の Bytes 型と C の文字列ポインタの変換方法を確認
-- SQLite が返す文字列のライフタイム管理を確認  
-- NULL ポインタの適切な処理方法を確認
+**MoonBit C FFI での文字列処理のベストプラクティス:**
+
+1. **動的に生成される文字列（データベースハンドル/ステートメントに紐づく）**
+   - `sqlite3_column_text`, `sqlite3_errmsg`など
+   - 直接`const char*`を返しても問題なし（MoonBitが適切に処理）
+
+2. **静的文字列（グローバルな定数文字列）**
+   - `sqlite3_errstr`, `sqlite3_bind_parameter_name`など
+   - **必ずバッファにコピーしてから返す必要がある**
+   - 例: `strncpy(buffer, src, size); return buffer;`
+
+3. **NULL処理**
+   - NULL の可能性がある場合は空文字列`""`を返す
+   - 例: `return name ? name : "";`
 

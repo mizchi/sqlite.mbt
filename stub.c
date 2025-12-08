@@ -198,3 +198,42 @@ int32_t sqlite_bind_parameter_count(sqlite3_stmt* stmt) {
 int32_t sqlite_stmt_readonly(sqlite3_stmt* stmt) {
     return sqlite3_stmt_readonly(stmt);
 }
+
+// 拡張エラー処理
+int32_t sqlite_extended_errcode(sqlite3* db) {
+    return sqlite3_extended_errcode(db);
+}
+
+// グローバルバッファ（静的領域）にエラー文字列をコピー
+// 注: sqlite3_errstr は静的文字列を返すので、それをコピーする
+static char errstr_buffer[256];
+
+const char* sqlite_errstr(int32_t errcode) {
+    const char* msg = sqlite3_errstr(errcode);
+    if (msg) {
+        strncpy(errstr_buffer, msg, sizeof(errstr_buffer) - 1);
+        errstr_buffer[sizeof(errstr_buffer) - 1] = '\0';
+        return errstr_buffer;
+    }
+    return "";
+}
+
+// パラメータ名を取得（静的文字列をバッファにコピー）
+static char param_name_buffer[256];
+
+const char* sqlite_bind_parameter_name(sqlite3_stmt* stmt, int32_t idx) {
+    const char* name = sqlite3_bind_parameter_name(stmt, idx);
+    if (name) {
+        strncpy(param_name_buffer, name, sizeof(param_name_buffer) - 1);
+        param_name_buffer[sizeof(param_name_buffer) - 1] = '\0';
+        return param_name_buffer;
+    }
+    return "";
+}
+
+int32_t sqlite_bind_parameter_index(sqlite3_stmt* stmt, moonbit_bytes_t name) {
+    char* name_str = bytes_to_cstring(name);
+    int idx = sqlite3_bind_parameter_index(stmt, name_str);
+    free(name_str);
+    return idx;
+}

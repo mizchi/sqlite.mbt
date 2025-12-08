@@ -81,6 +81,13 @@ pub extern "C" fn sqlite_errcode(db : Sqlite3) -> Int = "sqlite_errcode"
 #borrow(db)
 pub extern "C" fn sqlite_errmsg(db : Sqlite3) -> Bytes = "sqlite_errmsg"
 
+///|
+#borrow(db)
+pub extern "C" fn sqlite_extended_errcode(db : Sqlite3) -> Int = "sqlite_extended_errcode"
+
+///|
+pub extern "C" fn sqlite_errstr(errcode : Int) -> Bytes = "sqlite_errstr"
+
 // 追加のバインド関数
 
 ///|
@@ -187,6 +194,22 @@ pub extern "C" fn sqlite_bind_parameter_count(stmt : Sqlite3Stmt) -> Int = "sqli
 #borrow(stmt)
 pub extern "C" fn sqlite_stmt_readonly(stmt : Sqlite3Stmt) -> Int = "sqlite_stmt_readonly"
 
+// パラメータ名とインデックス
+
+///|
+#borrow(stmt)
+pub extern "C" fn sqlite_bind_parameter_name(
+  stmt : Sqlite3Stmt,
+  idx : Int,
+) -> Bytes = "sqlite_bind_parameter_name"
+
+///|
+#borrow(stmt, name)
+pub extern "C" fn sqlite_bind_parameter_index(
+  stmt : Sqlite3Stmt,
+  name : Bytes,
+) -> Int = "sqlite_bind_parameter_index"
+
 // 定数
 
 ///|
@@ -267,6 +290,11 @@ pub fn Database::errcode(self : Database) -> Int {
 ///|
 pub fn Database::errmsg(self : Database) -> Bytes {
   sqlite_errmsg(self.handle)
+}
+
+///|
+pub fn Database::extended_errcode(self : Database) -> Int {
+  sqlite_extended_errcode(self.handle)
 }
 
 ///|
@@ -636,6 +664,32 @@ test "database_error_handling" {
 }
 
 ///|
+test "sqlite_extended_errcode_and_errstr" {
+  let db = sqlite_open(to_c_string(":memory:"))
+
+  // 正常な操作
+  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER)"))
+  assert_eq(sqlite_errcode(db), SQLITE_OK)
+  assert_eq(sqlite_extended_errcode(db), SQLITE_OK)
+
+  // エラーを引き起こす
+  let _ = sqlite_exec(db, to_c_string("INVALID SQL"))
+  let errcode = sqlite_errcode(db)
+  assert_true(errcode != SQLITE_OK)
+
+  // 拡張エラーコードを取得
+  let ext_errcode = sqlite_extended_errcode(db)
+  assert_true(ext_errcode != SQLITE_OK)
+
+  // エラーコードから文字列を取得
+  let _ = sqlite_errstr(errcode)
+  let _ = sqlite_errstr(ext_errcode)
+  let _ = sqlite_errstr(SQLITE_OK)
+
+  sqlite_close(db)
+}
+
+///|
 test "database_changes_and_rowid" {
   let db = match Database::open(":memory:") {
     Some(d) => d
@@ -761,4 +815,37 @@ test "database_autocommit_and_total_changes" {
   assert_true(db.exec("COMMIT"))
   assert_true(db.get_autocommit())
   db.close()
+}
+
+///|
+test "sqlite_bind_parameter_name_and_index" {
+  let db = sqlite_open(to_c_string(":memory:"))
+  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value TEXT)"))
+
+  // 名前付きパラメータを使ったクエリ
+  let stmt = sqlite_prepare(
+    db,
+    to_c_string("INSERT INTO t (id, value) VALUES (:id, :value)"),
+  )
+
+  // パラメータ数を確認
+  assert_eq(sqlite_bind_parameter_count(stmt), 2)
+
+  // パラメータ名を取得（1-indexed）
+  let _ = sqlite_bind_parameter_name(stmt, 1) // ":id"
+  let _ = sqlite_bind_parameter_name(stmt, 2) // ":value"
+
+  // パラメータ名からインデックスを取得
+  let id_idx = sqlite_bind_parameter_index(stmt, to_c_string(":id"))
+  assert_eq(id_idx, 1)
+  let value_idx = sqlite_bind_parameter_index(stmt, to_c_string(":value"))
+  assert_eq(value_idx, 2)
+
+  // 名前を使ってバインド
+  let _ = sqlite_bind_int(stmt, id_idx, 100)
+  let _ = sqlite_bind_text(stmt, value_idx, to_c_string("test"))
+  let _ = sqlite_step(stmt)
+
+  sqlite_finalize(stmt)
+  sqlite_close(db)
 }

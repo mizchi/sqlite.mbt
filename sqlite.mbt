@@ -157,6 +157,36 @@ pub extern "C" fn sqlite_last_insert_rowid(db : Sqlite3) -> Int64 = "sqlite_last
 #borrow(stmt)
 pub extern "C" fn sqlite_clear_bindings(stmt : Sqlite3Stmt) -> Int = "sqlite_clear_bindings"
 
+// 並行アクセス制御
+
+///|
+#borrow(db)
+pub extern "C" fn sqlite_busy_timeout(db : Sqlite3, ms : Int) -> Int = "sqlite_busy_timeout"
+
+// トランザクション管理
+
+///|
+#borrow(db)
+pub extern "C" fn sqlite_get_autocommit(db : Sqlite3) -> Int = "sqlite_get_autocommit"
+
+///|
+#borrow(db)
+pub extern "C" fn sqlite_total_changes(db : Sqlite3) -> Int = "sqlite_total_changes"
+
+// ステートメント Introspection
+
+///|
+#borrow(stmt)
+pub extern "C" fn sqlite_sql(stmt : Sqlite3Stmt) -> Bytes = "sqlite_sql"
+
+///|
+#borrow(stmt)
+pub extern "C" fn sqlite_bind_parameter_count(stmt : Sqlite3Stmt) -> Int = "sqlite_bind_parameter_count"
+
+///|
+#borrow(stmt)
+pub extern "C" fn sqlite_stmt_readonly(stmt : Sqlite3Stmt) -> Int = "sqlite_stmt_readonly"
+
 // 定数
 
 ///|
@@ -247,6 +277,21 @@ pub fn Database::changes(self : Database) -> Int {
 ///|
 pub fn Database::last_insert_rowid(self : Database) -> Int64 {
   sqlite_last_insert_rowid(self.handle)
+}
+
+///|
+pub fn Database::busy_timeout(self : Database, ms : Int) -> Bool {
+  sqlite_busy_timeout(self.handle, ms) == SQLITE_OK
+}
+
+///|
+pub fn Database::get_autocommit(self : Database) -> Bool {
+  sqlite_get_autocommit(self.handle) != 0
+}
+
+///|
+pub fn Database::total_changes(self : Database) -> Int {
+  sqlite_total_changes(self.handle)
 }
 
 ///|
@@ -610,5 +655,110 @@ test "database_changes_and_rowid" {
   assert_eq(db.changes(), 1)
   assert_eq(db.last_insert_rowid(), 2L)
 
+  db.close()
+}
+
+///|
+test "sqlite_busy_timeout" {
+  let db = sqlite_open(to_c_string(":memory:"))
+  let rc = sqlite_busy_timeout(db, 1000)
+  assert_eq(rc, SQLITE_OK)
+  sqlite_close(db)
+}
+
+///|
+test "sqlite_get_autocommit" {
+  let db = sqlite_open(to_c_string(":memory:"))
+  assert_true(sqlite_get_autocommit(db) != 0)
+  let _ = sqlite_exec(db, to_c_string("BEGIN"))
+  assert_eq(sqlite_get_autocommit(db), 0)
+  let _ = sqlite_exec(db, to_c_string("COMMIT"))
+  assert_true(sqlite_get_autocommit(db) != 0)
+  sqlite_close(db)
+}
+
+///|
+test "sqlite_total_changes" {
+  let db = sqlite_open(to_c_string(":memory:"))
+  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER, value INTEGER)"))
+  assert_eq(sqlite_total_changes(db), 0)
+  let _ = sqlite_exec(db, to_c_string("INSERT INTO t VALUES (1, 100)"))
+  let _ = sqlite_exec(db, to_c_string("INSERT INTO t VALUES (2, 200)"))
+  let _ = sqlite_exec(db, to_c_string("INSERT INTO t VALUES (3, 300)"))
+  assert_eq(sqlite_total_changes(db), 3)
+  let _ = sqlite_exec(db, to_c_string("DELETE FROM t WHERE id = 2"))
+  assert_eq(sqlite_total_changes(db), 4)
+  sqlite_close(db)
+}
+
+///|
+test "sqlite_sql" {
+  let db = sqlite_open(to_c_string(":memory:"))
+  let sql_text = "SELECT * FROM sqlite_master"
+  let stmt = sqlite_prepare(db, to_c_string(sql_text))
+  let _ = sqlite_sql(stmt)
+  sqlite_finalize(stmt)
+  sqlite_close(db)
+}
+
+///|
+test "sqlite_bind_parameter_count" {
+  let db = sqlite_open(to_c_string(":memory:"))
+  let stmt1 = sqlite_prepare(db, to_c_string("SELECT 1"))
+  assert_eq(sqlite_bind_parameter_count(stmt1), 0)
+  sqlite_finalize(stmt1)
+  let stmt2 = sqlite_prepare(db, to_c_string("SELECT ?, ?"))
+  assert_eq(sqlite_bind_parameter_count(stmt2), 2)
+  sqlite_finalize(stmt2)
+  let stmt3 = sqlite_prepare(db, to_c_string("SELECT ?, ?, ?, ?, ?"))
+  assert_eq(sqlite_bind_parameter_count(stmt3), 5)
+  sqlite_finalize(stmt3)
+  sqlite_close(db)
+}
+
+///|
+test "sqlite_stmt_readonly" {
+  let db = sqlite_open(to_c_string(":memory:"))
+  let _ = sqlite_exec(db, to_c_string("CREATE TABLE t (id INTEGER)"))
+  let stmt1 = sqlite_prepare(db, to_c_string("SELECT * FROM t"))
+  assert_true(sqlite_stmt_readonly(stmt1) != 0)
+  sqlite_finalize(stmt1)
+  let stmt2 = sqlite_prepare(db, to_c_string("INSERT INTO t VALUES (1)"))
+  assert_eq(sqlite_stmt_readonly(stmt2), 0)
+  sqlite_finalize(stmt2)
+  let stmt3 = sqlite_prepare(db, to_c_string("UPDATE t SET id = 2"))
+  assert_eq(sqlite_stmt_readonly(stmt3), 0)
+  sqlite_finalize(stmt3)
+  sqlite_close(db)
+}
+
+///|
+test "database_busy_timeout" {
+  let db = match Database::open(":memory:") {
+    Some(d) => d
+    None => abort("Failed to open database")
+  }
+  assert_true(db.busy_timeout(5000))
+  db.close()
+}
+
+///|
+test "database_autocommit_and_total_changes" {
+  let db = match Database::open(":memory:") {
+    Some(d) => d
+    None => abort("Failed to open database")
+  }
+  assert_true(db.exec("CREATE TABLE t (id INTEGER)"))
+  assert_true(db.get_autocommit())
+  assert_eq(db.total_changes(), 0)
+  assert_true(db.exec("INSERT INTO t VALUES (1)"))
+  assert_true(db.exec("INSERT INTO t VALUES (2)"))
+  assert_eq(db.total_changes(), 2)
+  assert_true(db.exec("BEGIN"))
+  assert_false(db.get_autocommit())
+  assert_true(db.exec("INSERT INTO t VALUES (3)"))
+  assert_eq(db.total_changes(), 3)
+  assert_true(db.exec("COMMIT"))
+  assert_true(db.get_autocommit())
   db.close()
 }

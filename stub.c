@@ -170,3 +170,31 @@ int64_t sqlite_last_insert_rowid(sqlite3* db) {
 int32_t sqlite_clear_bindings(sqlite3_stmt* stmt) {
     return sqlite3_clear_bindings(stmt);
 }
+
+// 並行アクセス制御
+int32_t sqlite_busy_timeout(sqlite3* db, int32_t ms) {
+    return sqlite3_busy_timeout(db, ms);
+}
+
+// トランザクション管理
+int32_t sqlite_get_autocommit(sqlite3* db) {
+    return sqlite3_get_autocommit(db);
+}
+
+int32_t sqlite_total_changes(sqlite3* db) {
+    return sqlite3_total_changes(db);
+}
+
+// ステートメント Introspection
+const char* sqlite_sql(sqlite3_stmt* stmt) {
+    const char* sql = sqlite3_sql(stmt);
+    return sql ? sql : "";
+}
+
+int32_t sqlite_bind_parameter_count(sqlite3_stmt* stmt) {
+    return sqlite3_bind_parameter_count(stmt);
+}
+
+int32_t sqlite_stmt_readonly(sqlite3_stmt* stmt) {
+    return sqlite3_stmt_readonly(stmt);
+}

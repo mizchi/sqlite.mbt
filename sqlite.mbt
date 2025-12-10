@@ -462,7 +462,7 @@ pub fn Database::rollback_to(self : Database, name : String) -> Bool {
 // SqlValue enum for type-safe bind and column operations
 
 ///|
-pub enum SqlValue {
+pub(all) enum SqlValue {
   Null
   Int(Int)
   Int64(Int64)

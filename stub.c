@@ -121,8 +121,12 @@ double sqlite_column_double(sqlite3_stmt* stmt, int32_t col) {
     return sqlite3_column_double(stmt, col);
 }
 
-const char* sqlite_column_text(sqlite3_stmt* stmt, int32_t col) {
-    return (const char*)sqlite3_column_text(stmt, col);
+moonbit_bytes_t sqlite_column_text(sqlite3_stmt* stmt, int32_t col) {
+    const char* text_str = (const char*)sqlite3_column_text(stmt, col);
+    int32_t text_str_len = strlen(text_str);
+    moonbit_bytes_t mb_bytes = moonbit_make_bytes(strlen(text_str), 0);
+    memcpy(mb_bytes, text_str, text_str_len);
+    return mb_bytes;
 }
 
 // ステートメントをリセット（再利用可能に）
@@ -158,8 +162,12 @@ int64_t sqlite_column_int64(sqlite3_stmt* stmt, int32_t col) {
     return sqlite3_column_int64(stmt, col);
 }
 
-const void* sqlite_column_blob(sqlite3_stmt* stmt, int32_t col) {
-    return sqlite3_column_blob(stmt, col);
+moonbit_bytes_t sqlite_column_blob(sqlite3_stmt* stmt, int32_t col) {
+    const void* blob = sqlite3_column_blob(stmt, col);
+    int32_t blob_len = sqlite3_column_bytes(stmt, col);
+    moonbit_bytes_t mb_bytes = moonbit_make_bytes(blob_len, 0);
+    memcpy(mb_bytes, blob, blob_len);
+    return mb_bytes;
 }
 
 int32_t sqlite_column_bytes(sqlite3_stmt* stmt, int32_t col) {

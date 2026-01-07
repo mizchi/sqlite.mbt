@@ -1,5 +1,6 @@
 # MoonBit
-target/
+target
+_build
 *.mbti
 .mooncakes/
 

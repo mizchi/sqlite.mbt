@@ -568,14 +568,13 @@ pub fn Statement::finalize(self : Statement) -> Unit {
 
 ///|
 pub fn Statement::iter(self : Statement) -> Iter[Statement] {
-  Iter::new(fn(yield_) {
-    self.reset()
-    while self.step() {
-      if yield_(self) == IterEnd {
-        return IterEnd
-      }
+  self.reset()
+  Iter::new(fn() {
+    if self.step() {
+      Some(self)
+    } else {
+      None
     }
-    IterContinue
   })
 }
 

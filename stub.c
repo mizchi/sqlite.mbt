@@ -121,8 +121,17 @@ double sqlite_column_double(sqlite3_stmt* stmt, int32_t col) {
     return sqlite3_column_double(stmt, col);
 }
 
-const char* sqlite_column_text(sqlite3_stmt* stmt, int32_t col) {
-    return (const char*)sqlite3_column_text(stmt, col);
+// SQLiteのテキストカラムをMoonBitのBytesとして返す
+// moonbit_bytes_t は長さプレフィックス付きのバイト配列
+moonbit_bytes_t sqlite_column_text(sqlite3_stmt* stmt, int32_t col) {
+    const unsigned char* text = sqlite3_column_text(stmt, col);
+    int len = sqlite3_column_bytes(stmt, col);
+    if (text == NULL || len == 0) {
+        return moonbit_make_bytes(0, 0);
+    }
+    moonbit_bytes_t result = moonbit_make_bytes(len, 0);
+    memcpy(result, text, len);
+    return result;
 }
 
 // ステートメントをリセット（再利用可能に）
@@ -158,8 +167,16 @@ int64_t sqlite_column_int64(sqlite3_stmt* stmt, int32_t col) {
     return sqlite3_column_int64(stmt, col);
 }
 
-const void* sqlite_column_blob(sqlite3_stmt* stmt, int32_t col) {
-    return sqlite3_column_blob(stmt, col);
+// SQLiteのBLOBカラムをMoonBitのBytesとして返す
+moonbit_bytes_t sqlite_column_blob(sqlite3_stmt* stmt, int32_t col) {
+    const void* blob = sqlite3_column_blob(stmt, col);
+    int len = sqlite3_column_bytes(stmt, col);
+    if (blob == NULL || len == 0) {
+        return moonbit_make_bytes(0, 0);
+    }
+    moonbit_bytes_t result = moonbit_make_bytes(len, 0);
+    memcpy(result, blob, len);
+    return result;
 }
 
 int32_t sqlite_column_bytes(sqlite3_stmt* stmt, int32_t col) {

@@ -49,7 +49,7 @@ pub extern "C" fn sqlite_finalize(stmt : Sqlite3Stmt) -> Unit = "sqlite_finalize
 
 ///|
 #borrow(stmt)
-extern "C" fn sqlite_bind_int(
+pub extern "C" fn sqlite_bind_int(
   stmt : Sqlite3Stmt,
   idx : Int,
   value : Int,
@@ -57,7 +57,7 @@ extern "C" fn sqlite_bind_int(
 
 ///|
 #borrow(stmt, text)
-extern "C" fn sqlite_bind_text(
+pub extern "C" fn sqlite_bind_text(
   stmt : Sqlite3Stmt,
   idx : Int,
   text : Bytes,

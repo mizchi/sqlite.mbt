@@ -1,4 +1,4 @@
-// SQLite bindings for MoonBit
+// SQLite bindings for MoonBit (Native backend via C FFI)
 
 // Opaque external types (corresponding to C pointers)
 
@@ -330,7 +330,6 @@ pub const SQLITE_LIMIT_VARIABLE_NUMBER : Int = 9
 pub const SQLITE_LIMIT_TRIGGER_DEPTH : Int = 10
 
 // String -> Bytes conversion helper (UTF-8 encoding)
-// Using @encoding from moonbitlang/x/encoding
 
 ///|
 fn cstring(s : String) -> Bytes {
@@ -370,8 +369,13 @@ pub fn Database::prepare(self : Database, sql : String) -> Statement? {
   if sqlite_stmt_is_null(stmt) == 1 {
     None
   } else {
-    Some(Statement::new(stmt))
+    Some({ stmt, done: false })
   }
+}
+
+///|
+pub fn Database::query(self : Database, sql : String) -> Statement? {
+  self.prepare(sql)
 }
 
 ///|
@@ -418,70 +422,48 @@ pub fn Database::total_changes(self : Database) -> Int {
 
 ///|
 pub fn Database::begin(self : Database) -> Bool {
-  sqlite_exec(self.handle, cstring("BEGIN")) == SQLITE_OK
+  self.exec("BEGIN")
 }
 
 ///|
 pub fn Database::begin_immediate(self : Database) -> Bool {
-  sqlite_exec(self.handle, cstring("BEGIN IMMEDIATE")) == SQLITE_OK
+  self.exec("BEGIN IMMEDIATE")
 }
 
 ///|
 pub fn Database::begin_exclusive(self : Database) -> Bool {
-  sqlite_exec(self.handle, cstring("BEGIN EXCLUSIVE")) == SQLITE_OK
+  self.exec("BEGIN EXCLUSIVE")
 }
 
 ///|
 pub fn Database::commit(self : Database) -> Bool {
-  sqlite_exec(self.handle, cstring("COMMIT")) == SQLITE_OK
+  self.exec("COMMIT")
 }
 
 ///|
 pub fn Database::rollback(self : Database) -> Bool {
-  sqlite_exec(self.handle, cstring("ROLLBACK")) == SQLITE_OK
+  self.exec("ROLLBACK")
 }
 
 ///|
 pub fn Database::savepoint(self : Database, name : String) -> Bool {
-  let sql = "SAVEPOINT " + name
-  sqlite_exec(self.handle, cstring(sql)) == SQLITE_OK
+  self.exec("SAVEPOINT " + name)
 }
 
 ///|
 pub fn Database::release(self : Database, name : String) -> Bool {
-  let sql = "RELEASE " + name
-  sqlite_exec(self.handle, cstring(sql)) == SQLITE_OK
+  self.exec("RELEASE " + name)
 }
 
 ///|
 pub fn Database::rollback_to(self : Database, name : String) -> Bool {
-  let sql = "ROLLBACK TO " + name
-  sqlite_exec(self.handle, cstring(sql)) == SQLITE_OK
+  self.exec("ROLLBACK TO " + name)
 }
-
-// SqlValue enum for type-safe bind and column operations
-
-///|
-pub enum SqlValue {
-  Null
-  Int(Int)
-  Int64(Int64)
-  Double(Double)
-  Text(Bytes)
-  Blob(Bytes)
-}
-
-// Statement Iterator API
 
 ///|
 pub struct Statement {
   priv stmt : Sqlite3Stmt
   priv mut done : Bool
-}
-
-///|
-pub fn Statement::new(stmt : Sqlite3Stmt) -> Statement {
-  { stmt, done: false }
 }
 
 ///|
@@ -520,7 +502,7 @@ pub fn Statement::column_count(self : Statement) -> Int {
 }
 
 ///|
-pub fn Statement::bind(self : Statement, idx : Int, value : SqlValue) -> Bool {
+pub fn Statement::bind(self : Statement, idx : Int, value : @core.SqlValue) -> Bool {
   let result = match value {
     Null => sqlite_bind_null(self.stmt, idx)
     Int(v) => sqlite_bind_int(self.stmt, idx, v)
@@ -533,7 +515,7 @@ pub fn Statement::bind(self : Statement, idx : Int, value : SqlValue) -> Bool {
 }
 
 ///|
-pub fn Statement::bind_all(self : Statement, values : Array[SqlValue]) -> Bool {
+pub fn Statement::bind_all(self : Statement, values : Array[@core.SqlValue]) -> Bool {
   for i = 0; i < values.length(); i = i + 1 {
     if not(self.bind(i + 1, values[i])) {
       return false
@@ -543,7 +525,7 @@ pub fn Statement::bind_all(self : Statement, values : Array[SqlValue]) -> Bool {
 }
 
 ///|
-pub fn Statement::column(self : Statement, col : Int) -> SqlValue {
+pub fn Statement::column(self : Statement, col : Int) -> @core.SqlValue {
   let col_type = sqlite_column_type(self.stmt, col)
   match col_type {
     SQLITE_NULL => Null
@@ -569,18 +551,5 @@ pub fn Statement::finalize(self : Statement) -> Unit {
 ///|
 pub fn Statement::iter(self : Statement) -> Iter[Statement] {
   self.reset()
-  Iter::new(fn() {
-    if self.step() {
-      Some(self)
-    } else {
-      None
-    }
-  })
+  Iter::new(fn() { if self.step() { Some(self) } else { None } })
 }
-
-///|
-pub fn Database::query(self : Database, sql : String) -> Statement? {
-  self.prepare(sql)
-}
-
-///|

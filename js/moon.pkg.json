@@ -1,0 +1,8 @@
+{
+  "import": [
+    { "path": "mizchi/js/core", "alias": "jscore" },
+    { "path": "mizchi/js/node/sqlite", "alias": "node_sqlite" },
+    { "path": "mizchi/js/web/encoding", "alias": "js_encoding" }
+  ],
+  "warn-list": "-6-29"
+}

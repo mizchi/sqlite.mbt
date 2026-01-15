@@ -1,11 +1,13 @@
 {
+  "import": [
+    "moonbitlang/x/encoding",
+    "mizchi/sqlite/src/core"
+  ],
   "link": {
     "native": {
       "cc-link-flags": "-lsqlite3"
     }
   },
   "native-stub": ["stub.c"],
-  "import": [
-    "moonbitlang/x/encoding"
-  ]
+  "warn-list": "-6-29"
 }

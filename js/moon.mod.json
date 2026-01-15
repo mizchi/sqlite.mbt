@@ -1,0 +1,13 @@
+{
+  "name": "mizchi/sqlite-js",
+  "version": "0.1.0",
+  "license": "MIT",
+  "keywords": ["js", "sqlite"],
+  "deps": {
+    "mizchi/js": "0.10.10"
+  },
+  "readme": "../README.md",
+  "repository": "https://github.com/mizchi/sqlite.mbt",
+  "description": "SQLite bindings for MoonBit (Node.js backend)",
+  "preferred-target": "js"
+}

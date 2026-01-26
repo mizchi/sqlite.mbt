@@ -142,3 +142,8 @@ pub extern "js" fn is_uint8array(v : JsAny) -> Bool =
 #borrow(v)
 pub extern "js" fn bigint_to_number(v : JsAny) -> Int =
   #| (v) => Number(v)
+
+///|
+#borrow(obj, func_name, args)
+pub extern "js" fn js_apply(obj : JsAny, func_name : String, args : JsAny) -> JsAny =
+  #| (obj, func_name, args) => obj[func_name].apply(obj, args)

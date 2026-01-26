@@ -65,7 +65,7 @@ pub fn NodeStatementSync::run(
   for param in anonymous_parameters {
     js_array_push(args, param)
   }
-  js_call1(to_any_stmt(self), "run", args)
+  js_apply(to_any_stmt(self), "run", args)
 }
 
 ///|
@@ -77,7 +77,7 @@ pub fn NodeStatementSync::all(
   for param in anonymous_parameters {
     js_array_push(args, param)
   }
-  from_any_array(js_call1(to_any_stmt(self), "all", args))
+  from_any_array(js_apply(to_any_stmt(self), "all", args))
 }
 
 ///|

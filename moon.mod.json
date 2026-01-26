@@ -15,7 +15,8 @@
   "description": "libsqlite3 bindings for MoonBit",
   "source": ".",
   "exclude": [
-    "example"
+    "example",
+    "sqlite_bench.ts"
   ],
   "preferred-target": "native"
 }

@@ -1,11 +1,20 @@
 {
+  "import": [
+    "moonbitlang/x/encoding",
+    "moonbitlang/core/bench"
+  ],
   "link": {
     "native": {
       "cc-link-flags": "-lsqlite3"
     }
   },
   "native-stub": ["stub.c"],
-  "import": [
-    "moonbitlang/x/encoding"
-  ]
+  "warn-list": "-6-29-35",
+  "targets": {
+    "sqlite_native.mbt": ["native"],
+    "js_ffi.mbt": ["js"],
+    "sqlite_js.mbt": ["js"],
+    "sqlite_bench.mbt": ["native"],
+    "sqlite_wbtest.mbt": ["native"]
+  }
 }

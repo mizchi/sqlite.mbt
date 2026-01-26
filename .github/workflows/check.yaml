@@ -1,53 +1,43 @@
-name: check
+name: CI
 
 on:
-  workflow_dispatch:
   push:
     branches:
-      - master
       - main
-      
   pull_request:
+  workflow_dispatch:
 
 jobs:
-  check:
-    strategy:
-      matrix:
-        version: [stable,pre-release]
-        os:
-          - name: ubuntu-latest
-            triple: x86_64-linux-gnu          
-      fail-fast: false
-    runs-on: ${{ matrix.os.name }}
-    continue-on-error: false
+  test:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          fetch-depth: 1
-      - name: Install Dependencies
+          node-version: '22'
+      - name: Install SQLite3
         run: sudo apt install -y libsqlite3-dev
-      - name: Setup Moon
-        uses: illusory0x0/setup-moonbit@v0.1.0
-        with: 
-          version: ${{ matrix.version }}
-      - name: moon version
+      - name: Install MoonBit CLI
         run: |
-          moon version --all
-      - name: install module dependencies
-        run: |
-          moon update
-          moon install
-      - name: moon check
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - name: Moon update
+        run: moon update
+      - name: Moon check (native)
         run: moon check --deny-warn --target native
-      - name: moon info
+      - name: Moon check (js)
+        run: moon check --deny-warn --target js
+      - name: Moon info
         run: |
           moon info --target native
           git diff --exit-code
-      - name: format diff
+      - name: Format check
         run: |
           moon fmt
           git diff --exit-code
-
-      - name: moon test
-        run: |
-          moon test --target native
+      - name: Moon test (native)
+        run: moon test --target native
+      - name: Moon test (js)
+        run: moon test --target js

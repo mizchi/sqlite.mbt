@@ -1,6 +1,8 @@
 {
   "name": "mizchi/sqlite",
   "version": "0.1.3",
+  "source": ".",
+  "exclude": ["example"],
   "license": "MIT",
   "keywords": ["native", "sqlite"],
   "deps": {

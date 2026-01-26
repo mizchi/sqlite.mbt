@@ -50,7 +50,8 @@ test "sqlite_bind_text" {
   sqlite_finalize(stmt)
   let stmt2 = sqlite_prepare(db, cstring("SELECT name FROM t WHERE id = 1"))
   assert_eq(sqlite_step(stmt2), SQLITE_ROW)
-  let _ = sqlite_column_text(stmt2, 0)
+  let got_column_text = sqlite_column_text(stmt2, 0)
+  assert_eq(@encoding.decoder(UTF8).decode_lossy(got_column_text[:]), "hello")
   sqlite_finalize(stmt2)
   sqlite_close(db)
 }
@@ -147,8 +148,9 @@ test "sqlite_bind_blob" {
   sqlite_finalize(stmt)
   let stmt2 = sqlite_prepare(db, cstring("SELECT data FROM t WHERE id = 1"))
   assert_eq(sqlite_step(stmt2), SQLITE_ROW)
-  let _ = sqlite_column_blob(stmt2, 0)
+  let got_blob = sqlite_column_blob(stmt2, 0)
   assert_true(sqlite_column_bytes(stmt2, 0) > 0)
+  assert_eq(got_blob, blob_data)
   sqlite_finalize(stmt2)
   sqlite_close(db)
 }

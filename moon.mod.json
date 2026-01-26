@@ -1,15 +1,21 @@
 {
   "name": "mizchi/sqlite",
-  "version": "0.1.3",
-  "source": ".",
-  "exclude": ["example"],
-  "license": "MIT",
-  "keywords": ["native", "sqlite"],
+  "version": "0.2.0",
   "deps": {
     "moonbitlang/x": "0.4.38"
   },
   "readme": "README.md",
   "repository": "https://github.com/mizchi/sqlite.mbt",
+  "license": "MIT",
+  "keywords": [
+    "native",
+    "sqlite",
+    "js"
+  ],
   "description": "libsqlite3 bindings for MoonBit",
+  "source": ".",
+  "exclude": [
+    "example"
+  ],
   "preferred-target": "native"
 }

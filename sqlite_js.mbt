@@ -1,79 +1,122 @@
-// SQLite bindings for MoonBit (Node.js backend via node:sqlite)
-
-// Common types
+// Node.js SQLite bindings
 
 ///|
-pub(all) enum SqlValue {
-  Null
-  Int(Int)
-  Int64(Int64)
-  Double(Double)
-  Text(Bytes)
-  Blob(Bytes)
-}
-
-// Helper functions
+#external
+pub type NodeDatabaseSync
 
 ///|
-fn string_to_bytes(s : String) -> Bytes {
-  let encoded = @js_encoding.TextEncoder::new().encode(s)
-  @jscore.identity(encoded)
-}
+#borrow(path, opts)
+extern "js" fn new_database_sync(path : String, opts : JsAny) -> NodeDatabaseSync =
+  #| (path, opts) => new (require("node:sqlite").DatabaseSync)(path, opts)
 
 ///|
-fn bytes_to_string(b : Bytes) -> String {
-  @js_encoding.TextDecoder::new().decode(@jscore.identity(b))
+pub fn NodeDatabaseSync::new(
+  path : String,
+  returnArrays~ : Bool = false,
+) -> NodeDatabaseSync {
+  let opts = js_new_object()
+  js_set(opts, "returnArrays", to_any_bool(returnArrays))
+  new_database_sync(path, opts)
 }
 
 ///|
-fn empty_bytes() -> Bytes {
-  string_to_bytes("")
+pub fn NodeDatabaseSync::close(self : NodeDatabaseSync) -> Unit {
+  js_call0(to_any_node_db(self), "close") |> ignore
 }
 
 ///|
-extern "js" fn is_integer(v : @jscore.Any) -> Bool =
-  #| (v) => Number.isInteger(v)
-
-///|
-extern "js" fn bigint_to_number(v : @jscore.Any) -> Int =
-  #| (v) => Number(v)
-
-///|
-fn is_uint8array(v : @jscore.Any) -> Bool {
-  let ctor = @jscore.global_this()._get("Uint8Array")
-  @jscore.instanceof_(v, ctor)
+pub fn NodeDatabaseSync::exec(self : NodeDatabaseSync, sql : String) -> Unit {
+  js_call1(to_any_node_db(self), "exec", to_any_string(sql)) |> ignore
 }
 
 ///|
-fn sql_value_to_any(value : SqlValue) -> @jscore.Any {
+pub fn NodeDatabaseSync::prepare(self : NodeDatabaseSync, sql : String) -> NodeStatementSync {
+  from_any_stmt(js_call1(to_any_node_db(self), "prepare", to_any_string(sql)))
+}
+
+///|
+extern "js" fn to_any_node_db(v : NodeDatabaseSync) -> JsAny =
+  #| (v) => v
+
+///|
+#borrow(v)
+extern "js" fn from_any_stmt(v : JsAny) -> NodeStatementSync =
+  #| (v) => v
+
+///|
+#external
+pub type NodeStatementSync
+
+///|
+extern "js" fn to_any_stmt(v : NodeStatementSync) -> JsAny =
+  #| (v) => v
+
+///|
+#borrow(v)
+extern "js" fn from_any_array(v : JsAny) -> Array[JsAny] =
+  #| (v) => v
+
+///|
+pub fn NodeStatementSync::run(
+  self : NodeStatementSync,
+  anonymous_parameters~ : Array[JsAny] = [],
+) -> JsAny {
+  let args = js_new_array()
+  for param in anonymous_parameters {
+    js_array_push(args, param)
+  }
+  js_call1(to_any_stmt(self), "run", args)
+}
+
+///|
+pub fn NodeStatementSync::all(
+  self : NodeStatementSync,
+  anonymous_parameters~ : Array[JsAny] = [],
+) -> Array[JsAny] {
+  let args = js_new_array()
+  for param in anonymous_parameters {
+    js_array_push(args, param)
+  }
+  from_any_array(js_call1(to_any_stmt(self), "all", args))
+}
+
+///|
+pub fn NodeStatementSync::columns(self : NodeStatementSync) -> Array[JsAny] {
+  from_any_array(js_call0(to_any_stmt(self), "columns"))
+}
+
+// High-level API compatible with native
+
+///|
+pub fn sql_value_to_any(value : @core.SqlValue) -> JsAny {
   match value {
-    Null => @jscore.null()
-    Int(v) => @jscore.any(v)
-    Int64(v) => @jscore.any(v)
-    Double(v) => @jscore.any(v)
-    Text(v) => @jscore.any(bytes_to_string(v))
-    Blob(v) => @jscore.any(v)
+    Null => js_null()
+    Int(v) => to_any_int(v)
+    Int64(v) => to_any_int64(v)
+    Double(v) => to_any_double(v)
+    Text(v) => to_any_string(bytes_to_string(v))
+    Blob(v) => to_any_bytes(v)
   }
 }
 
 ///|
-fn any_to_sql_value(value : @jscore.Any) -> SqlValue {
-  if @jscore.is_nullish(value) {
+pub fn any_to_sql_value(value : JsAny) -> @core.SqlValue {
+  if is_nullish(value) {
     Null
   } else {
-    let kind = @jscore.typeof_(value)
+    let kind = typeof_(value)
     if kind == "number" {
       if is_integer(value) {
-        Int(value.cast())
+        Int(from_any_int(value))
       } else {
-        Double(value.cast())
+        Double(from_any_double(value))
       }
     } else if kind == "bigint" {
-      Int64(value.cast())
+      Int64(from_any_int64(value))
     } else if kind == "string" {
-      Text(string_to_bytes(value.cast()))
+      Text(string_to_bytes(from_any_string(value)))
     } else if is_uint8array(value) {
-      Blob(value.cast())
+      Blob(from_any_bytes(value))
     } else {
       Null
     }
@@ -81,39 +124,39 @@ fn any_to_sql_value(value : @jscore.Any) -> SqlValue {
 }
 
 ///|
-fn any_to_bytes(value : @jscore.Any) -> Bytes {
-  if @jscore.is_nullish(value) {
-    empty_bytes()
+fn any_to_bytes(value : JsAny) -> Bytes {
+  if is_nullish(value) {
+    string_to_bytes("")
   } else {
-    let kind = @jscore.typeof_(value)
+    let kind = typeof_(value)
     if kind == "string" {
-      string_to_bytes(value.cast())
+      string_to_bytes(from_any_string(value))
     } else if is_uint8array(value) {
-      value.cast()
+      from_any_bytes(value)
     } else {
-      empty_bytes()
+      string_to_bytes("")
     }
   }
 }
 
 ///|
 priv struct StatementState {
-  stmt : @node_sqlite.StatementSync
-  mut bound : Array[SqlValue]
-  mut rows : Array[@jscore.Any]
+  stmt : NodeStatementSync
+  mut bound : Array[@core.SqlValue]
+  mut rows : Array[JsAny]
   mut row_index : Int
-  mut current_row : @jscore.Any?
+  mut current_row : JsAny?
   mut done : Bool
 }
 
 ///|
-fn statement_state_new(stmt : @node_sqlite.StatementSync) -> StatementState {
+fn statement_state_new(stmt : NodeStatementSync) -> StatementState {
   { stmt, bound: [], rows: [], row_index: 0, current_row: None, done: false }
 }
 
 ///|
-fn statement_bound_params(state : StatementState) -> Array[@jscore.Any] {
-  let params : Array[@jscore.Any] = []
+fn statement_bound_params(state : StatementState) -> Array[JsAny] {
+  let params : Array[JsAny] = []
   for value in state.bound {
     params.push(sql_value_to_any(value))
   }
@@ -128,16 +171,14 @@ fn statement_reset_state(state : StatementState) -> Unit {
   state.done = false
 }
 
-// High-level API
-
 ///|
 pub struct Database {
-  priv db : @node_sqlite.DatabaseSync
+  priv db : NodeDatabaseSync
 }
 
 ///|
 pub fn Database::open(path : String) -> Database? {
-  Some({ db: @node_sqlite.DatabaseSync::new(path, returnArrays=true) })
+  Some({ db: NodeDatabaseSync::new(path, returnArrays=true) })
 }
 
 ///|
@@ -170,7 +211,7 @@ pub fn Database::errcode(self : Database) -> Int {
 ///|
 pub fn Database::errmsg(self : Database) -> Bytes {
   let _ = self
-  empty_bytes()
+  string_to_bytes("")
 }
 
 ///|
@@ -312,12 +353,17 @@ pub fn Statement::execute(self : Statement) -> Bool {
 }
 
 ///|
+extern "js" fn to_any_js(v : JsAny) -> JsAny =
+  #| (v) => v
+
+///|
 pub fn Statement::column_int(self : Statement, col : Int) -> Int {
-  match stmt_column_any(self.state, col) {
-    Some(value) => {
-      let kind = @jscore.typeof_(value)
+  match self.state.current_row {
+    Some(row) => {
+      let value = js_get_index(to_any_js(row), col)
+      let kind = typeof_(value)
       if kind == "number" {
-        value.cast()
+        from_any_int(value)
       } else if kind == "bigint" {
         bigint_to_number(value)
       } else {
@@ -330,9 +376,9 @@ pub fn Statement::column_int(self : Statement, col : Int) -> Int {
 
 ///|
 pub fn Statement::column_text(self : Statement, col : Int) -> Bytes {
-  match stmt_column_any(self.state, col) {
-    Some(value) => any_to_bytes(value)
-    None => empty_bytes()
+  match self.state.current_row {
+    Some(row) => any_to_bytes(js_get_index(to_any_js(row), col))
+    None => string_to_bytes("")
   }
 }
 
@@ -342,7 +388,7 @@ pub fn Statement::column_count(self : Statement) -> Int {
 }
 
 ///|
-pub fn Statement::bind(self : Statement, idx : Int, value : SqlValue) -> Bool {
+pub fn Statement::bind(self : Statement, idx : Int, value : @core.SqlValue) -> Bool {
   if idx <= 0 {
     return false
   }
@@ -355,15 +401,15 @@ pub fn Statement::bind(self : Statement, idx : Int, value : SqlValue) -> Bool {
 }
 
 ///|
-pub fn Statement::bind_all(self : Statement, values : Array[SqlValue]) -> Bool {
+pub fn Statement::bind_all(self : Statement, values : Array[@core.SqlValue]) -> Bool {
   self.state.bound = values
   true
 }
 
 ///|
-pub fn Statement::column(self : Statement, col : Int) -> SqlValue {
-  match stmt_column_any(self.state, col) {
-    Some(value) => any_to_sql_value(value)
+pub fn Statement::column(self : Statement, col : Int) -> @core.SqlValue {
+  match self.state.current_row {
+    Some(row) => any_to_sql_value(js_get_index(to_any_js(row), col))
     None => Null
   }
 }
@@ -382,12 +428,4 @@ pub fn Statement::finalize(self : Statement) -> Unit {
 pub fn Statement::iter(self : Statement) -> Iter[Statement] {
   self.reset()
   Iter::new(fn() { if self.step() { Some(self) } else { None } })
-}
-
-///|
-fn stmt_column_any(state : StatementState, col : Int) -> @jscore.Any? {
-  match state.current_row {
-    Some(row) => Some(@jscore.any(row)._get_by_index(col))
-    None => None
-  }
 }

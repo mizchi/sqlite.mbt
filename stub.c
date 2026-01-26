@@ -4,8 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-// MoonBitのBytesからC文字列を取得するヘルパー
-// @encoding.encode_utf8()はUTF-8エンコーディングなので、そのままコピーしてNULL終端を追加
+// Helper to convert MoonBit Bytes to C string
+// @encoding.encode_utf8() returns UTF-8 encoded bytes, so we copy directly and add NULL terminator
 static char* bytes_to_cstring(moonbit_bytes_t bytes) {
     int32_t len = Moonbit_array_length(bytes);
     char* str = (char*)malloc(len + 1);
@@ -14,7 +14,7 @@ static char* bytes_to_cstring(moonbit_bytes_t bytes) {
     return str;
 }
 
-// データベースを開く（成功時はdb, 失敗時はNULL）
+// Open database (returns db on success, NULL on failure)
 sqlite3* sqlite_open(moonbit_bytes_t filename) {
     char* fname = bytes_to_cstring(filename);
     sqlite3* db;
@@ -27,7 +27,7 @@ sqlite3* sqlite_open(moonbit_bytes_t filename) {
     return db;
 }
 
-// データベースを拡張オプションで開く
+// Open database with extended options
 sqlite3* sqlite_open_v2(moonbit_bytes_t filename, int32_t flags, moonbit_bytes_t vfs) {
     char* fname = bytes_to_cstring(filename);
     char* vfs_str = NULL;
@@ -48,7 +48,7 @@ sqlite3* sqlite_open_v2(moonbit_bytes_t filename, int32_t flags, moonbit_bytes_t
     return db;
 }
 
-// ポインタがNULLかどうかをチェック
+// Check if pointer is NULL
 int32_t sqlite_is_null(void* ptr) {
     return ptr == NULL ? 1 : 0;
 }
@@ -57,12 +57,12 @@ int32_t sqlite_stmt_is_null(sqlite3_stmt* ptr) {
     return ptr == NULL ? 1 : 0;
 }
 
-// データベースを閉じる
+// Close database
 void sqlite_close(sqlite3* db) {
     sqlite3_close(db);
 }
 
-// SQL実行（結果なし）。0=成功
+// Execute SQL (no result). Returns 0 on success
 int32_t sqlite_exec(sqlite3* db, moonbit_bytes_t sql) {
     char* sql_str = bytes_to_cstring(sql);
     char* err_msg = NULL;
@@ -74,7 +74,7 @@ int32_t sqlite_exec(sqlite3* db, moonbit_bytes_t sql) {
     return rc;
 }
 
-// プリペアドステートメントを作成（失敗時はNULL）
+// Create prepared statement (returns NULL on failure)
 sqlite3_stmt* sqlite_prepare(sqlite3* db, moonbit_bytes_t sql) {
     char* sql_str = bytes_to_cstring(sql);
     sqlite3_stmt* stmt = NULL;
@@ -86,12 +86,12 @@ sqlite3_stmt* sqlite_prepare(sqlite3* db, moonbit_bytes_t sql) {
     return stmt;
 }
 
-// ステートメントを破棄
+// Finalize statement
 void sqlite_finalize(sqlite3_stmt* stmt) {
     sqlite3_finalize(stmt);
 }
 
-// パラメータをバインド（1-indexed）
+// Bind parameter (1-indexed)
 int32_t sqlite_bind_int(sqlite3_stmt* stmt, int32_t idx, int32_t value) {
     return sqlite3_bind_int(stmt, idx, value);
 }
@@ -107,12 +107,12 @@ int32_t sqlite_bind_text(sqlite3_stmt* stmt, int32_t idx, moonbit_bytes_t text) 
     return rc;
 }
 
-// 次の行に進む。100=SQLITE_ROW(データあり), 101=SQLITE_DONE(終了)
+// Step to next row. 100=SQLITE_ROW (has data), 101=SQLITE_DONE (finished)
 int32_t sqlite_step(sqlite3_stmt* stmt) {
     return sqlite3_step(stmt);
 }
 
-// カラムの値を取得（0-indexed）
+// Get column value (0-indexed)
 int32_t sqlite_column_int(sqlite3_stmt* stmt, int32_t col) {
     return sqlite3_column_int(stmt, col);
 }
@@ -121,8 +121,8 @@ double sqlite_column_double(sqlite3_stmt* stmt, int32_t col) {
     return sqlite3_column_double(stmt, col);
 }
 
-// SQLiteのテキストカラムをMoonBitのBytesとして返す
-// moonbit_bytes_t は長さプレフィックス付きのバイト配列
+// Return SQLite text column as MoonBit Bytes
+// moonbit_bytes_t is a length-prefixed byte array
 moonbit_bytes_t sqlite_column_text(sqlite3_stmt* stmt, int32_t col) {
     const unsigned char* text = sqlite3_column_text(stmt, col);
     int len = sqlite3_column_bytes(stmt, col);
@@ -134,12 +134,12 @@ moonbit_bytes_t sqlite_column_text(sqlite3_stmt* stmt, int32_t col) {
     return result;
 }
 
-// ステートメントをリセット（再利用可能に）
+// Reset statement (make it reusable)
 void sqlite_reset(sqlite3_stmt* stmt) {
     sqlite3_reset(stmt);
 }
 
-// エラーハンドリング
+// Error handling
 int32_t sqlite_errcode(sqlite3* db) {
     return sqlite3_errcode(db);
 }
@@ -148,7 +148,7 @@ const char* sqlite_errmsg(sqlite3* db) {
     return sqlite3_errmsg(db);
 }
 
-// 追加のバインド関数
+// Additional bind functions
 int32_t sqlite_bind_null(sqlite3_stmt* stmt, int32_t idx) {
     return sqlite3_bind_null(stmt, idx);
 }
@@ -162,12 +162,12 @@ int32_t sqlite_bind_blob(sqlite3_stmt* stmt, int32_t idx, moonbit_bytes_t blob) 
     return sqlite3_bind_blob(stmt, idx, blob, len, SQLITE_TRANSIENT);
 }
 
-// 追加のカラム取得関数
+// Additional column getter functions
 int64_t sqlite_column_int64(sqlite3_stmt* stmt, int32_t col) {
     return sqlite3_column_int64(stmt, col);
 }
 
-// SQLiteのBLOBカラムをMoonBitのBytesとして返す
+// Return SQLite BLOB column as MoonBit Bytes
 moonbit_bytes_t sqlite_column_blob(sqlite3_stmt* stmt, int32_t col) {
     const void* blob = sqlite3_column_blob(stmt, col);
     int len = sqlite3_column_bytes(stmt, col);
@@ -187,7 +187,7 @@ int32_t sqlite_column_type(sqlite3_stmt* stmt, int32_t col) {
     return sqlite3_column_type(stmt, col);
 }
 
-// メタデータ関数
+// Metadata functions
 int32_t sqlite_column_count(sqlite3_stmt* stmt) {
     return sqlite3_column_count(stmt);
 }
@@ -204,17 +204,17 @@ int64_t sqlite_last_insert_rowid(sqlite3* db) {
     return sqlite3_last_insert_rowid(db);
 }
 
-// ステートメントクリア
+// Clear statement bindings
 int32_t sqlite_clear_bindings(sqlite3_stmt* stmt) {
     return sqlite3_clear_bindings(stmt);
 }
 
-// 並行アクセス制御
+// Concurrency control
 int32_t sqlite_busy_timeout(sqlite3* db, int32_t ms) {
     return sqlite3_busy_timeout(db, ms);
 }
 
-// トランザクション管理
+// Transaction management
 int32_t sqlite_get_autocommit(sqlite3* db) {
     return sqlite3_get_autocommit(db);
 }
@@ -223,7 +223,7 @@ int32_t sqlite_total_changes(sqlite3* db) {
     return sqlite3_total_changes(db);
 }
 
-// ステートメント Introspection
+// Statement introspection
 const char* sqlite_sql(sqlite3_stmt* stmt) {
     const char* sql = sqlite3_sql(stmt);
     return sql ? sql : "";
@@ -237,13 +237,13 @@ int32_t sqlite_stmt_readonly(sqlite3_stmt* stmt) {
     return sqlite3_stmt_readonly(stmt);
 }
 
-// 拡張エラー処理
+// Extended error handling
 int32_t sqlite_extended_errcode(sqlite3* db) {
     return sqlite3_extended_errcode(db);
 }
 
-// グローバルバッファ（静的領域）にエラー文字列をコピー
-// 注: sqlite3_errstr は静的文字列を返すので、それをコピーする
+// Copy error string to global buffer (static storage)
+// Note: sqlite3_errstr returns static string, so we copy it
 static char errstr_buffer[256];
 
 const char* sqlite_errstr(int32_t errcode) {
@@ -256,7 +256,7 @@ const char* sqlite_errstr(int32_t errcode) {
     return "";
 }
 
-// パラメータ名を取得（静的文字列をバッファにコピー）
+// Get parameter name (copy static string to buffer)
 static char param_name_buffer[256];
 
 const char* sqlite_bind_parameter_name(sqlite3_stmt* stmt, int32_t idx) {
@@ -276,7 +276,7 @@ int32_t sqlite_bind_parameter_index(sqlite3_stmt* stmt, moonbit_bytes_t name) {
     return idx;
 }
 
-// データベースファイル名を取得（静的文字列をバッファにコピー）
+// Get database filename (copy static string to buffer)
 static char db_filename_buffer[512];
 
 const char* sqlite_db_filename(sqlite3* db, moonbit_bytes_t dbname) {
@@ -299,7 +299,7 @@ int32_t sqlite_db_readonly(sqlite3* db, moonbit_bytes_t dbname) {
     return readonly;
 }
 
-// 展開されたSQLを取得（動的に割り当てられた文字列）
+// Get expanded SQL (dynamically allocated string)
 static char expanded_sql_buffer[1024];
 
 const char* sqlite_expanded_sql(sqlite3_stmt* stmt) {
@@ -307,18 +307,18 @@ const char* sqlite_expanded_sql(sqlite3_stmt* stmt) {
     if (sql) {
         strncpy(expanded_sql_buffer, sql, sizeof(expanded_sql_buffer) - 1);
         expanded_sql_buffer[sizeof(expanded_sql_buffer) - 1] = '\0';
-        sqlite3_free(sql);  // 重要: 動的に割り当てられた文字列を解放
+        sqlite3_free(sql);  // Important: free dynamically allocated string
         return expanded_sql_buffer;
     }
     return "";
 }
 
-// 実行中のクエリを中断
+// Interrupt running query
 void sqlite_interrupt(sqlite3* db) {
     sqlite3_interrupt(db);
 }
 
-// リソース制限の設定/取得
+// Set/get resource limits
 int32_t sqlite_limit(sqlite3* db, int32_t id, int32_t newVal) {
     return sqlite3_limit(db, id, newVal);
 }

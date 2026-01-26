@@ -1,7 +1,7 @@
 {
   "import": [
     "moonbitlang/x/encoding",
-    "mizchi/sqlite/src/core"
+    "moonbitlang/core/bench"
   ],
   "link": {
     "native": {

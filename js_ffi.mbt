@@ -102,7 +102,12 @@ pub extern "js" fn js_call1(obj : JsAny, method : String, arg : JsAny) -> JsAny 
 
 ///|
 #borrow(obj, method, a1, a2)
-pub extern "js" fn js_call2(obj : JsAny, method : String, a1 : JsAny, a2 : JsAny) -> JsAny =
+pub extern "js" fn js_call2(
+  obj : JsAny,
+  method : String,
+  a1 : JsAny,
+  a2 : JsAny,
+) -> JsAny =
   #| (obj, method, a1, a2) => obj[method](a1, a2)
 
 ///|
@@ -144,6 +149,14 @@ pub extern "js" fn bigint_to_number(v : JsAny) -> Int =
   #| (v) => Number(v)
 
 ///|
+pub extern "js" fn int64_to_number(v : Int64) -> JsAny =
+  #| (v) => Number(v)
+
+///|
 #borrow(obj, func_name, args)
-pub extern "js" fn js_apply(obj : JsAny, func_name : String, args : JsAny) -> JsAny =
+pub extern "js" fn js_apply(
+  obj : JsAny,
+  func_name : String,
+  args : JsAny,
+) -> JsAny =
   #| (obj, func_name, args) => obj[func_name].apply(obj, args)

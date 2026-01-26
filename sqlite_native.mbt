@@ -502,7 +502,7 @@ pub fn Statement::column_count(self : Statement) -> Int {
 }
 
 ///|
-pub fn Statement::bind(self : Statement, idx : Int, value : @core.SqlValue) -> Bool {
+pub fn Statement::bind(self : Statement, idx : Int, value : SqlValue) -> Bool {
   let result = match value {
     Null => sqlite_bind_null(self.stmt, idx)
     Int(v) => sqlite_bind_int(self.stmt, idx, v)
@@ -515,7 +515,7 @@ pub fn Statement::bind(self : Statement, idx : Int, value : @core.SqlValue) -> B
 }
 
 ///|
-pub fn Statement::bind_all(self : Statement, values : Array[@core.SqlValue]) -> Bool {
+pub fn Statement::bind_all(self : Statement, values : Array[SqlValue]) -> Bool {
   for i = 0; i < values.length(); i = i + 1 {
     if not(self.bind(i + 1, values[i])) {
       return false
@@ -525,7 +525,7 @@ pub fn Statement::bind_all(self : Statement, values : Array[@core.SqlValue]) -> 
 }
 
 ///|
-pub fn Statement::column(self : Statement, col : Int) -> @core.SqlValue {
+pub fn Statement::column(self : Statement, col : Int) -> SqlValue {
   let col_type = sqlite_column_type(self.stmt, col)
   match col_type {
     SQLITE_NULL => Null

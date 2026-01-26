@@ -6,13 +6,16 @@ pub type NodeDatabaseSync
 
 ///|
 #borrow(path, opts)
-extern "js" fn new_database_sync(path : String, opts : JsAny) -> NodeDatabaseSync =
+extern "js" fn new_database_sync(
+  path : String,
+  opts : JsAny,
+) -> NodeDatabaseSync =
   #| (path, opts) => new (require("node:sqlite").DatabaseSync)(path, opts)
 
 ///|
 pub fn NodeDatabaseSync::new(
   path : String,
-  returnArrays~ : Bool = false,
+  returnArrays? : Bool = false,
 ) -> NodeDatabaseSync {
   let opts = js_new_object()
   js_set(opts, "returnArrays", to_any_bool(returnArrays))
@@ -30,7 +33,10 @@ pub fn NodeDatabaseSync::exec(self : NodeDatabaseSync, sql : String) -> Unit {
 }
 
 ///|
-pub fn NodeDatabaseSync::prepare(self : NodeDatabaseSync, sql : String) -> NodeStatementSync {
+pub fn NodeDatabaseSync::prepare(
+  self : NodeDatabaseSync,
+  sql : String,
+) -> NodeStatementSync {
   from_any_stmt(js_call1(to_any_node_db(self), "prepare", to_any_string(sql)))
 }
 
@@ -59,7 +65,7 @@ extern "js" fn from_any_array(v : JsAny) -> Array[JsAny] =
 ///|
 pub fn NodeStatementSync::run(
   self : NodeStatementSync,
-  anonymous_parameters~ : Array[JsAny] = [],
+  anonymous_parameters? : Array[JsAny] = [],
 ) -> JsAny {
   let args = js_new_array()
   for param in anonymous_parameters {
@@ -71,7 +77,7 @@ pub fn NodeStatementSync::run(
 ///|
 pub fn NodeStatementSync::all(
   self : NodeStatementSync,
-  anonymous_parameters~ : Array[JsAny] = [],
+  anonymous_parameters? : Array[JsAny] = [],
 ) -> Array[JsAny] {
   let args = js_new_array()
   for param in anonymous_parameters {
@@ -88,11 +94,12 @@ pub fn NodeStatementSync::columns(self : NodeStatementSync) -> Array[JsAny] {
 // High-level API compatible with native
 
 ///|
-pub fn sql_value_to_any(value : @core.SqlValue) -> JsAny {
+pub fn sql_value_to_any(value : SqlValue) -> JsAny {
   match value {
     Null => js_null()
     Int(v) => to_any_int(v)
-    Int64(v) => to_any_int64(v)
+    // Node.js SQLite doesn't support BigInt as bind parameter, convert to Number
+    Int64(v) => int64_to_number(v)
     Double(v) => to_any_double(v)
     Text(v) => to_any_string(bytes_to_string(v))
     Blob(v) => to_any_bytes(v)
@@ -100,7 +107,7 @@ pub fn sql_value_to_any(value : @core.SqlValue) -> JsAny {
 }
 
 ///|
-pub fn any_to_sql_value(value : JsAny) -> @core.SqlValue {
+pub fn any_to_sql_value(value : JsAny) -> SqlValue {
   if is_nullish(value) {
     Null
   } else {
@@ -142,7 +149,7 @@ fn any_to_bytes(value : JsAny) -> Bytes {
 ///|
 priv struct StatementState {
   stmt : NodeStatementSync
-  mut bound : Array[@core.SqlValue]
+  mut bound : Array[SqlValue]
   mut rows : Array[JsAny]
   mut row_index : Int
   mut current_row : JsAny?
@@ -331,7 +338,9 @@ pub fn Statement::step(self : Statement) -> Bool {
     return false
   }
   if self.state.row_index == 0 && self.state.rows.length() == 0 {
-    self.state.rows = self.state.stmt.all(anonymous_parameters=statement_bound_params(self.state))
+    self.state.rows = self.state.stmt.all(
+      anonymous_parameters=statement_bound_params(self.state),
+    )
   }
   if self.state.row_index < self.state.rows.length() {
     let row = self.state.rows[self.state.row_index]
@@ -347,7 +356,8 @@ pub fn Statement::step(self : Statement) -> Bool {
 
 ///|
 pub fn Statement::execute(self : Statement) -> Bool {
-  self.state.stmt.run(anonymous_parameters=statement_bound_params(self.state)) |> ignore
+  self.state.stmt.run(anonymous_parameters=statement_bound_params(self.state))
+  |> ignore
   statement_reset_state(self.state)
   true
 }
@@ -388,7 +398,7 @@ pub fn Statement::column_count(self : Statement) -> Int {
 }
 
 ///|
-pub fn Statement::bind(self : Statement, idx : Int, value : @core.SqlValue) -> Bool {
+pub fn Statement::bind(self : Statement, idx : Int, value : SqlValue) -> Bool {
   if idx <= 0 {
     return false
   }
@@ -401,13 +411,13 @@ pub fn Statement::bind(self : Statement, idx : Int, value : @core.SqlValue) -> B
 }
 
 ///|
-pub fn Statement::bind_all(self : Statement, values : Array[@core.SqlValue]) -> Bool {
+pub fn Statement::bind_all(self : Statement, values : Array[SqlValue]) -> Bool {
   self.state.bound = values
   true
 }
 
 ///|
-pub fn Statement::column(self : Statement, col : Int) -> @core.SqlValue {
+pub fn Statement::column(self : Statement, col : Int) -> SqlValue {
   match self.state.current_row {
     Some(row) => any_to_sql_value(js_get_index(to_any_js(row), col))
     None => Null

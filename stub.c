@@ -153,8 +153,11 @@ int32_t sqlite_bind_null(sqlite3_stmt* stmt, int32_t idx) {
     return sqlite3_bind_null(stmt, idx);
 }
 
-int32_t sqlite_bind_int64(sqlite3_stmt* stmt, int32_t idx, int64_t value) {
-    return sqlite3_bind_int64(stmt, idx, value);
+// Note: Using int64_t for idx to avoid ABI issues with mixed 32/64-bit parameters
+// on some platforms (Linux x86-64). MoonBit may pass parameters differently
+// when mixing Int and Int64 types.
+int32_t sqlite_bind_int64(sqlite3_stmt* stmt, int64_t idx, int64_t value) {
+    return sqlite3_bind_int64(stmt, (int)idx, value);
 }
 
 int32_t sqlite_bind_blob(sqlite3_stmt* stmt, int32_t idx, moonbit_bytes_t blob) {

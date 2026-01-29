@@ -104,11 +104,16 @@ pub extern "C" fn sqlite_bind_null(stmt : Sqlite3Stmt, idx : Int) -> Int = "sqli
 
 ///|
 #borrow(stmt)
-pub extern "C" fn sqlite_bind_int64(
+extern "C" fn sqlite_bind_int64_ffi(
   stmt : Sqlite3Stmt,
-  idx : Int,
+  idx : Int64,
   value : Int64,
 ) -> Int = "sqlite_bind_int64"
+
+///|
+pub fn sqlite_bind_int64(stmt : Sqlite3Stmt, idx : Int, value : Int64) -> Int {
+  sqlite_bind_int64_ffi(stmt, idx.to_int64(), value)
+}
 
 ///|
 #borrow(stmt)

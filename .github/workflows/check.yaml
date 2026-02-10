@@ -38,6 +38,6 @@ jobs:
           moon fmt
           git diff --exit-code
       - name: Moon test (native)
-        run: moon test --target native
+        run: moon test --target native --package mizchi/sqlite --file sqlite_wbtest.mbt
       - name: Moon test (js)
         run: moon test --target js

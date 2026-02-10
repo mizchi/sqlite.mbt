@@ -2,7 +2,7 @@
   "name": "mizchi/sqlite",
   "version": "0.2.1",
   "deps": {
-    "moonbitlang/x": "0.4.40"
+    "moonbitlang/x": "0.4.38"
   },
   "readme": "README.md",
   "repository": "https://github.com/mizchi/sqlite.mbt",

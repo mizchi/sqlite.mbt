@@ -1,13 +1,3 @@
-fn bytes_to_str(b : Bytes) -> String {
-  let sb = StringBuilder::new()
-  try {
-    @encoding.decode_to(b[:], sb, encoding=UTF8)
-  } catch {
-    _ => ()
-  }
-  sb.to_string()
-}
-
 fn main {
   // Open in-memory database
   let db = @sqlite.Database::open(":memory:").unwrap()
@@ -27,7 +17,7 @@ fn main {
   println("Users:")
   while stmt.step() {
     let id = stmt.column_int(0)
-    let name = bytes_to_str(stmt.column_text(1))
+    let name = @encoding.decoder(UTF8).decode_lossy(stmt.column_text(1)[:])
     let age = stmt.column_int(2)
     println("  id=\{id}, name=\{name}, age=\{age}")
   }
@@ -39,7 +29,7 @@ fn main {
 
   println("\nUsers older than 28:")
   while stmt2.step() {
-    let name = bytes_to_str(stmt2.column_text(0))
+    let name = @encoding.decoder(UTF8).decode_lossy(stmt2.column_text(0)[:])
     println("  \{name}")
   }
   stmt2.finalize()

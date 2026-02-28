@@ -44,42 +44,37 @@ Add to your `moon.pkg.json`:
 }
 ```
 
-## Usage
+## Example Usage
 
 ```moonbit
-let db = match @sqlite.Database::open(":memory:") {
-  Some(d) => d
-  None => {
-    println("Failed to open database")
-    return
-  }
-}
+let db = @sqlite.Database::open(":memory:").unwrap()
 
 // Create table
 db.exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)")
+|> ignore
 
-// Insert data with bind_all()
-match db.prepare("INSERT INTO users (name, age) VALUES (?, ?)") {
-  Some(stmt) => {
-    stmt.bind_all([Text(string_to_bytes("Alice")), Int(30)]) |> ignore
-    stmt.execute() |> ignore
-    stmt.finalize()
-  }
-  None => println("Failed to prepare statement")
-}
+// Insert data
+db.exec("INSERT INTO users (name, age) VALUES ('Alice', 30)") |> ignore
+db.exec("INSERT INTO users (name, age) VALUES ('Bob', 25)") |> ignore
 
-// Query with iterator
-match db.query("SELECT id, name, age FROM users") {
-  Some(stmt) => {
-    for row in stmt.iter() {
-      let id = row.column_int(0)
-      let age = row.column_int(2)
-      println("id=\{id}, age=\{age}")
-    }
-    stmt.finalize()
-  }
-  None => println("Failed to prepare statement")
+// Query with prepared statement
+let stmt = db.prepare("SELECT id, name, age FROM users ORDER BY id").unwrap()
+while stmt.step() {
+  let id = stmt.column_int(0)
+  let name = @encoding.decoder(UTF8).decode_lossy(stmt.column_text(1)[:])
+  let age = stmt.column_int(2)
+  println("id=\{id}, name=\{name}, age=\{age}")
 }
+stmt.finalize()
+
+// Query with bind parameter
+let stmt2 = db.prepare("SELECT name FROM users WHERE age > ?").unwrap()
+stmt2.bind(1, @sqlite.SqlValue::Int(28)) |> ignore
+while stmt2.step() {
+  let name = @encoding.decoder(UTF8).decode_lossy(stmt2.column_text(0)[:])
+  println("\{name}")
+}
+stmt2.finalize()
 
 db.close()
 ```

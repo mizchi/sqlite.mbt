@@ -14,3 +14,8 @@ target/
 .vscode/
 .idea/
 _build
+
+# Nix
+result
+result-*
+.direnv/

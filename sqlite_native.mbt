@@ -522,7 +522,7 @@ pub fn Statement::bind(self : Statement, idx : Int, value : SqlValue) -> Bool {
 ///|
 pub fn Statement::bind_all(self : Statement, values : Array[SqlValue]) -> Bool {
   for i = 0; i < values.length(); i = i + 1 {
-    if not(self.bind(i + 1, values[i])) {
+    if !self.bind(i + 1, values[i]) {
       return false
     }
   }

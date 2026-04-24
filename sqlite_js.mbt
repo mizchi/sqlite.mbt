@@ -398,6 +398,17 @@ pub fn Statement::column_count(self : Statement) -> Int {
 }
 
 ///|
+/// Return the declared name of the `col`-th column in the result set.
+/// Returns "" when `col` is out of range. Mirrors sqlite3_column_name.
+pub fn Statement::column_name(self : Statement, col : Int) -> String {
+  let cols = self.state.stmt.columns()
+  if col < 0 || col >= cols.length() {
+    return ""
+  }
+  from_any_string(js_get(cols[col], "name"))
+}
+
+///|
 pub fn Statement::bind(self : Statement, idx : Int, value : SqlValue) -> Bool {
   if idx <= 0 {
     return false

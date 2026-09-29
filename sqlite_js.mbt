@@ -59,8 +59,12 @@ extern "js" fn to_any_stmt(v : NodeStatementSync) -> JsAny =
 
 ///|
 #borrow(v)
-extern "js" fn from_any_array(v : JsAny) -> Array[JsAny] =
+extern "js" fn from_any_array_ffi(v : JsAny) -> FixedArray[JsAny] =
   #| (v) => v
+
+fn from_any_array(v : JsAny) -> Array[JsAny] {
+  Array::from_fixed_array(from_any_array_ffi(v))
+}
 
 ///|
 pub fn NodeStatementSync::run(
